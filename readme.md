@@ -7,7 +7,7 @@ MoodMate adalah aplikasi untuk prediksi mood berbasis teks menggunakan teknologi
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Frontend      │───▶│   Backend API    │───▶│    ML API       │
-│ (Vanilla JS)    │    │   (Node.js)      │    │   (Python)      │
+│ (Vanill.js)    │    │   (Hapi.js)      │    │   (Python)      │
 │ Port: 8080      │    │   Port: 9000     │    │   Port: 8000    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
