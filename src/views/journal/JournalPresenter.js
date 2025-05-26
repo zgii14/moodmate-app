@@ -53,8 +53,27 @@ const ApiService = {
         mood: null,
         error: {
           message: `Gagal menghubungi ML service: ${error.message}`,
+          type: "connection_error",
         },
       };
+    }
+  },
+
+  async checkServerHealth() {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/health", {
+        method: "GET",
+        timeout: 5000,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.status === "OK";
+      }
+      return false;
+    } catch (error) {
+      console.log("ML Server is not running:", error.message);
+      return false;
     }
   },
 };
@@ -135,7 +154,6 @@ export default function JournalPresenter() {
     });
   }
 
-  // Mood selector
   const moodItems = document.querySelectorAll(".mood-item");
   let selectedMood = "";
 
@@ -178,22 +196,34 @@ export default function JournalPresenter() {
 
     const saveBtn = document.getElementById("simpan-btn");
     const originalText = saveBtn.textContent;
-    saveBtn.textContent = "Menganalisis mood...";
+    saveBtn.textContent = "Memeriksa server ML...";
     saveBtn.disabled = true;
 
     try {
+      const isServerRunning = await ApiService.checkServerHealth();
+
+      if (!isServerRunning) {
+        showNotification(
+          "❌ Server ML tidak dapat diakses! Pastikan server ML sedang berjalan di http://127.0.0.1:8000",
+          "error"
+        );
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+        return;
+      }
+
+      saveBtn.textContent = "Menganalisis mood...";
+
       const { mood, confidence, error } = await ApiService.predictMood(catatan);
 
       if (error) {
         console.error("API Error:", error);
-        showNotification(`Gagal memprediksi mood: ${error.message}`, "error");
-
-        const fallbackMood = selectedMood || klasifikasiMood(catatan);
         showNotification(
-          "Menggunakan klasifikasi lokal sebagai fallback",
-          "info"
+          `❌ Gagal memprediksi mood: ${error.message}. Pastikan server ML sedang berjalan!`,
+          "error"
         );
-        await saveFinalEntry(catatan, fallbackMood, null);
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
         return;
       }
 
@@ -203,7 +233,7 @@ export default function JournalPresenter() {
 
       console.log("Predicted mood:", mood, "Confidence:", confidence);
       showNotification(
-        `Mood berhasil diprediksi: ${mood} (${confidence}%)`,
+        `✅ Mood berhasil diprediksi: ${mood} (${confidence}%)`,
         "success"
       );
 
@@ -211,13 +241,9 @@ export default function JournalPresenter() {
     } catch (error) {
       console.error("Error predicting mood:", error);
       showNotification(
-        "Terjadi kesalahan. Menggunakan klasifikasi lokal.",
+        "❌ Terjadi kesalahan saat menghubungi server ML. Pastikan server sedang berjalan!",
         "error"
       );
-
-      const fallbackMood = selectedMood || klasifikasiMood(catatan);
-      await saveFinalEntry(catatan, fallbackMood, null);
-    } finally {
       saveBtn.textContent = originalText;
       saveBtn.disabled = false;
     }
@@ -252,10 +278,12 @@ export default function JournalPresenter() {
     console.log("Final entry to save:", newEntry);
     saveJournalEntry(newEntry);
 
-    showNotification("Catatan berhasil disimpan! ✨", "success");
+    showNotification("✅ Catatan berhasil disimpan! ✨", "success");
+
+    const saveBtn = document.getElementById("simpan-btn");
+    const originalText = "Simpan Catatan";
 
     setTimeout(() => {
-      // Reset form
       document.getElementById("catatan").value = "";
 
       const selectedDivs = container.querySelectorAll('[data-selected="true"]');
@@ -270,6 +298,9 @@ export default function JournalPresenter() {
         div.setAttribute("data-selected", "false");
       });
 
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
+
       const savedData = JSON.parse(localStorage.getItem("catatan") || "[]");
       const lastEntry = savedData[savedData.length - 1];
       console.log("Verifying saved data before redirect:", lastEntry);
@@ -282,93 +313,10 @@ export default function JournalPresenter() {
       }
     }, 1500);
   }
-  function klasifikasiMood(teks) {
-    teks = teks.toLowerCase();
-
-    const moodKeywords = {
-      happy: [
-        "senang",
-        "bahagia",
-        "bersyukur",
-        "ceria",
-        "bangga",
-        "lega",
-        "semangat",
-        "puas",
-        "gembira",
-      ],
-      sad: ["sedih", "kecewa", "terpuruk", "murung", "hancur", "putus asa"],
-      anger: [
-        "marah",
-        "kesal",
-        "jengkel",
-        "benci",
-        "geram",
-        "dongkol",
-        "sewot",
-      ],
-      fear: [
-        "takut",
-        "cemas",
-        "khawatir",
-        "was-was",
-        "panik",
-        "gelisah",
-        "tegang",
-      ],
-      love: [
-        "cinta",
-        "sayang",
-        "rindu",
-        "romantis",
-        "mesra",
-        "kasih",
-        "afeksi",
-        "kencan",
-        "pacaran",
-      ],
-      neutral: ["biasa", "normal", "standar", "lumayan", "oke"],
-    };
-
-    let scores = {
-      happy: 0,
-      sad: 0,
-      anger: 0,
-      fear: 0,
-      love: 0,
-      neutral: 0,
-    };
-
-    Object.keys(moodKeywords).forEach((mood) => {
-      moodKeywords[mood].forEach((kata) => {
-        if (teks.includes(kata)) {
-          scores[mood]++;
-        }
-      });
-    });
-
-    let maxScore = 0;
-    let predictedMood = "neutral";
-
-    Object.keys(scores).forEach((mood) => {
-      if (scores[mood] > maxScore) {
-        maxScore = scores[mood];
-        predictedMood = mood;
-      }
-    });
-
-    console.log(
-      "Local mood classification scores:",
-      scores,
-      "Result:",
-      predictedMood
-    );
-    return predictedMood;
-  }
 
   function showNotification(message, type = "info") {
     const notification = document.createElement("div");
-    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full ${
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full max-w-md ${
       type === "success"
         ? "bg-green-500 text-white"
         : type === "error"
