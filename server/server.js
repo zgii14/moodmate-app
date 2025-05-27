@@ -4,12 +4,25 @@ const Bcrypt = require("bcrypt");
 const fetch = require("node-fetch");
 
 let users = [];
+let refreshTokens = new Set();
 let idCounter = 1;
 
 const JWT_SECRET = "moodmate-secret-key-2024";
+const REFRESH_TOKEN_SECRET = "moodmate-refresh-secret-key-2024";
 
 const generateId = () => `id_${Date.now()}_${idCounter++}`;
 const getCurrentDate = () => new Date().toISOString();
+
+const generateRefreshToken = (userId) => {
+  return Jwt.token.generate(
+    {
+      id: userId,
+      type: "refresh",
+      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+    },
+    REFRESH_TOKEN_SECRET
+  );
+};
 
 const validate = (decoded, request, h) => {
   const user = users.find((u) => u.id === decoded.id);
@@ -45,7 +58,7 @@ const init = async () => {
       sub: false,
       nbf: true,
       exp: true,
-      maxAgeSec: 14400,
+      maxAgeSec: 86400,
       timeSkewSec: 15,
     },
     validate,
@@ -73,7 +86,6 @@ const init = async () => {
     handler: async (request, h) => {
       const { name, email, password } = request.payload;
 
-      // Check if user exists
       if (users.find((u) => u.email === email)) {
         return h
           .response({
@@ -134,27 +146,101 @@ const init = async () => {
           .code(401);
       }
 
-      const token = Jwt.token.generate(
+      const accessToken = Jwt.token.generate(
         {
           id: user.id,
           email: user.email,
-          exp: Math.floor(Date.now() / 1000) + 4 * 60 * 60,
+          exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
         },
         JWT_SECRET
       );
+
+      const refreshToken = generateRefreshToken(user.id);
+      refreshTokens.add(refreshToken);
 
       return {
         success: true,
         message: "Login berhasil",
         data: {
-          token,
+          token: accessToken,
+          refreshToken: refreshToken,
           user: {
             id: user.id,
             name: user.name,
             email: user.email,
+            createdAt: user.createdAt,
           },
         },
       };
+    },
+  });
+
+  server.route({
+    method: "POST",
+    path: "/api/auth/refresh",
+    options: { auth: false },
+    handler: async (request, h) => {
+      const { refreshToken } = request.payload;
+
+      if (!refreshToken || !refreshTokens.has(refreshToken)) {
+        return h
+          .response({
+            success: false,
+            message: "Invalid refresh token",
+          })
+          .code(401);
+      }
+
+      try {
+        const decoded = Jwt.token.decode(refreshToken);
+        const payload = Jwt.token.verify(decoded, REFRESH_TOKEN_SECRET);
+
+        if (payload.type !== "refresh") {
+          throw new Error("Invalid token type");
+        }
+
+        const user = users.find((u) => u.id === payload.id);
+        if (!user) {
+          throw new Error("User not found");
+        }
+
+        const newAccessToken = Jwt.token.generate(
+          {
+            id: user.id,
+            email: user.email,
+            exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+          },
+          JWT_SECRET
+        );
+
+        const newRefreshToken = generateRefreshToken(user.id);
+
+        refreshTokens.delete(refreshToken);
+        refreshTokens.add(newRefreshToken);
+
+        return {
+          success: true,
+          message: "Token refreshed successfully",
+          data: {
+            token: newAccessToken,
+            refreshToken: newRefreshToken,
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              createdAt: user.createdAt,
+            },
+          },
+        };
+      } catch (error) {
+        console.error("Refresh token error:", error);
+        return h
+          .response({
+            success: false,
+            message: "Invalid refresh token",
+          })
+          .code(401);
+      }
     },
   });
 
@@ -213,13 +299,33 @@ const init = async () => {
     },
   });
 
+  server.route({
+    method: "POST",
+    path: "/api/auth/logout",
+    options: { auth: false },
+    handler: async (request, h) => {
+      const { refreshToken } = request.payload;
+
+      if (refreshToken) {
+        refreshTokens.delete(refreshToken);
+      }
+
+      return {
+        success: true,
+        message: "Logout berhasil",
+      };
+    },
+  });
+
   await server.start();
   console.log("🚀 MoodMate Auth API Server running on %s", server.info.uri);
   console.log("📋 Available Endpoints:");
   console.log("   - Health Check: GET /api/health");
   console.log("   - Register: POST /api/auth/register");
   console.log("   - Login: POST /api/auth/login");
+  console.log("   - Refresh Token: POST /api/auth/refresh");
   console.log("   - Profile: GET /api/auth/profile");
+  console.log("   - Logout: POST /api/auth/logout");
   console.log("   - Predict Mood: POST /api/predict-mood");
 };
 
