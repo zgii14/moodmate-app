@@ -1,14 +1,13 @@
 import CONFIG from "../config";
 import { getAccessToken, setAccessToken } from "../utils/auth";
 
-// API Endpoints
 const API = {
-  // Authentication
   REGISTER: `${CONFIG.BASE_URL}/auth/register`,
   LOGIN: `${CONFIG.BASE_URL}/auth/login`,
+  REFRESH: `${CONFIG.BASE_URL}/auth/refresh`,
   GET_PROFILE: `${CONFIG.BASE_URL}/auth/profile`,
+  LOGOUT: `${CONFIG.BASE_URL}/auth/logout`,
 
-  // Health Check
   HEALTH_CHECK: `${CONFIG.BASE_URL}/health`,
 };
 
@@ -19,6 +18,82 @@ class ApiService {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     };
+  }
+
+  static async makeAuthenticatedRequest(url, options = {}) {
+    let response = await fetch(url, {
+      ...options,
+      headers: {
+        ...this.getAuthHeaders(),
+        ...options.headers,
+      },
+    });
+
+    if (response.status === 401) {
+      const refreshSuccess = await this.refreshToken();
+
+      if (refreshSuccess) {
+        response = await fetch(url, {
+          ...options,
+          headers: {
+            ...this.getAuthHeaders(),
+            ...options.headers,
+          },
+        });
+      } else {
+        this.handleAuthFailure();
+        throw new Error("Authentication failed");
+      }
+    }
+
+    return response;
+  }
+
+  static async refreshToken() {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        return false;
+      }
+
+      const response = await fetch(API.REFRESH, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data.token) {
+        localStorage.setItem("accessToken", result.data.token);
+        localStorage.setItem("refreshToken", result.data.refreshToken);
+        console.log("Token refreshed successfully");
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      return false;
+    }
+  }
+
+  static handleAuthFailure() {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("moodmate-user");
+    localStorage.removeItem("moodmate-logged-in");
+    localStorage.removeItem("moodmate-current-user");
+
+    setTimeout(() => {
+      location.hash = "/login";
+    }, 1000);
   }
 
   static async register({ name, email, password }) {
@@ -141,6 +216,8 @@ class ApiService {
       }
 
       let token = null;
+      let refreshToken = null;
+
       const tokenPaths = [
         result.data?.token,
         result.data?.accessToken,
@@ -151,6 +228,17 @@ class ApiService {
       ];
 
       token = tokenPaths.find(
+        (t) => t && typeof t === "string" && t.length > 0
+      );
+
+      const refreshTokenPaths = [
+        result.data?.refreshToken,
+        result.data?.refresh_token,
+        result.refreshToken,
+        result.refresh_token,
+      ];
+
+      refreshToken = refreshTokenPaths.find(
         (t) => t && typeof t === "string" && t.length > 0
       );
 
@@ -172,7 +260,11 @@ class ApiService {
       }
 
       localStorage.setItem("accessToken", token);
-      console.log("Token saved successfully:", token.substring(0, 20) + "...");
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
+
+      console.log("Tokens saved successfully");
 
       return {
         error: false,
@@ -181,6 +273,7 @@ class ApiService {
         data: result,
         user: result.data?.user || result.user,
         token: token,
+        refreshToken: refreshToken,
       };
     } catch (error) {
       console.error("Login Network Error:", error);
@@ -201,9 +294,8 @@ class ApiService {
 
   static async getUserProfile() {
     try {
-      const response = await fetch(API.GET_PROFILE, {
+      const response = await this.makeAuthenticatedRequest(API.GET_PROFILE, {
         method: "GET",
-        headers: this.getAuthHeaders(),
       });
 
       return response.json();
@@ -223,9 +315,8 @@ class ApiService {
     detailAktivitas = {},
   }) {
     try {
-      const response = await fetch(API.CREATE_JOURNAL, {
+      const response = await this.makeAuthenticatedRequest(API.CREATE_JOURNAL, {
         method: "POST",
-        headers: this.getAuthHeaders(),
         body: JSON.stringify({
           catatan,
           mood,
@@ -246,11 +337,13 @@ class ApiService {
 
   static async predictMood(text) {
     try {
-      const response = await fetch(`${CONFIG.BASE_URL}/predict-mood`, {
-        method: "POST",
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify({ text }),
-      });
+      const response = await this.makeAuthenticatedRequest(
+        `${CONFIG.BASE_URL}/predict-mood`,
+        {
+          method: "POST",
+          body: JSON.stringify({ text }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -283,14 +376,53 @@ class ApiService {
     }
   }
 
-  static logout() {
-    import("../utils/auth").then(({ removeAccessToken }) => {
-      removeAccessToken();
-    });
+  static async logout() {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      if (refreshToken) {
+        await fetch(API.LOGOUT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ refreshToken }),
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("moodmate-user");
+      localStorage.removeItem("moodmate-logged-in");
+      localStorage.removeItem("moodmate-current-user");
+
+      import("../utils/auth").then(({ removeAccessToken }) => {
+        removeAccessToken();
+      });
+    }
   }
 
   static isLoggedIn() {
-    return !!getAccessToken();
+    const token = getAccessToken();
+    const refreshToken = localStorage.getItem("refreshToken");
+    return !!(token || refreshToken);
+  }
+
+  static async checkAuth() {
+    const token = getAccessToken();
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    if (!token && !refreshToken) {
+      return false;
+    }
+
+    if (!token && refreshToken) {
+      return await this.refreshToken();
+    }
+
+    return true;
   }
 }
 
