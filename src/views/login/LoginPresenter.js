@@ -1,7 +1,6 @@
 import ApiService from "../../data/api.js";
 
 export default function LoginPresenter() {
-
   setTimeout(() => {
     const form = document.getElementById("form-login");
     const passwordInput = document.getElementById("login-password");
@@ -37,6 +36,8 @@ export default function LoginPresenter() {
         const email = document.getElementById("login-email").value.trim();
         const password = document.getElementById("login-password").value;
         const submitButton = form.querySelector('button[type="submit"]');
+        const rememberMe =
+          document.getElementById("remember-me")?.checked || false;
 
         if (!email || !password) {
           alert("Email dan kata sandi harus diisi!");
@@ -67,15 +68,19 @@ export default function LoginPresenter() {
           }
 
           const savedToken = localStorage.getItem("accessToken");
-          console.log("Token saved:", !!savedToken);
+          const savedRefreshToken = localStorage.getItem("refreshToken");
+          console.log("Access token saved:", !!savedToken);
+          console.log("Refresh token saved:", !!savedRefreshToken);
 
           if (!savedToken) {
             alert("Login gagal. Token tidak ditemukan. Silakan coba lagi.");
             return;
           }
+
           if (savedToken.length < 10) {
             alert("Login gagal. Token tidak valid. Silakan coba lagi.");
             localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
             return;
           }
 
@@ -128,6 +133,26 @@ export default function LoginPresenter() {
           localStorage.setItem("moodmate-user", JSON.stringify(userData));
           localStorage.setItem("moodmate-logged-in", "true");
           localStorage.setItem("moodmate-current-user", email);
+          localStorage.setItem("moodmate-login-time", new Date().toISOString());
+
+          if (rememberMe) {
+            localStorage.setItem("moodmate-remember-me", "true");
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 30);
+            localStorage.setItem(
+              "moodmate-session-expiry",
+              expiryDate.toISOString()
+            );
+          } else {
+            localStorage.setItem("moodmate-remember-me", "false");
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 1);
+            localStorage.setItem(
+              "moodmate-session-expiry",
+              expiryDate.toISOString()
+            );
+          }
+
           localStorage.removeItem("temp-user-data");
 
           console.log("Login successful, redirecting to dashboard...");
@@ -140,6 +165,7 @@ export default function LoginPresenter() {
           console.error("Login error:", error);
 
           localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
 
           if (error.name === "TypeError" && error.message.includes("fetch")) {
             alert(
@@ -147,6 +173,8 @@ export default function LoginPresenter() {
             );
           } else if (error.message && error.message.includes("401")) {
             alert("Email atau kata sandi salah.");
+          } else if (error.message === "Authentication failed") {
+            alert("Sesi Anda telah berakhir. Silakan login kembali.");
           } else {
             alert("Terjadi kesalahan saat login. Silakan coba lagi.");
           }
@@ -156,5 +184,50 @@ export default function LoginPresenter() {
         }
       });
     }
+
+    checkAutoLogin();
   }, 100);
+}
+
+async function checkAutoLogin() {
+  try {
+    const isLoggedIn = localStorage.getItem("moodmate-logged-in");
+    const sessionExpiry = localStorage.getItem("moodmate-session-expiry");
+    const rememberMe = localStorage.getItem("moodmate-remember-me");
+
+    if (isLoggedIn === "true" && sessionExpiry) {
+      const expiryDate = new Date(sessionExpiry);
+      const now = new Date();
+
+      if (now < expiryDate) {
+        const authStatus = await ApiService.checkAuth();
+
+        if (authStatus) {
+          console.log("Auto-login successful");
+          setTimeout(() => {
+            location.hash = "/dashboard";
+          }, 1000);
+          return;
+        }
+      }
+    }
+
+    if (rememberMe !== "true") {
+      clearSessionData();
+    }
+  } catch (error) {
+    console.error("Auto-login check failed:", error);
+    clearSessionData();
+  }
+}
+
+function clearSessionData() {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("moodmate-user");
+  localStorage.removeItem("moodmate-logged-in");
+  localStorage.removeItem("moodmate-current-user");
+  localStorage.removeItem("moodmate-login-time");
+  localStorage.removeItem("moodmate-session-expiry");
+  localStorage.removeItem("moodmate-remember-me");
 }
