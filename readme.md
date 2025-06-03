@@ -1,6 +1,6 @@
 # MoodMate Project
 
-MoodMate adalah aplikasi untuk prediksi mood berbasis teks menggunakan teknologi Machine Learning. Proyek ini terdiri dari tiga komponen utama: Frontend (Vanilla JavaScript), Backend API (Node.js dengan Hapi.js), dan ML API (Python dengan FastAPI).
+MoodMate adalah aplikasi untuk prediksi mood berbasis teks menggunakan teknologi Machine Learning. Proyek ini terdiri dari tiga komponen utama: Frontend (Vanilla.js), Backend API (Node.js dengan Hapi.js), dan ML API (Python dengan FastAPI).
 
 ## 🏗️ Arsitektur Sistem
 
@@ -43,11 +43,19 @@ npm start
 ```
 🚀 MoodMate Auth API Server running on http://localhost:9000
 📋 Available Endpoints:
-   - Health Check: GET /api/health
+    - Health Check: GET /api/health
    - Register: POST /api/auth/register
    - Login: POST /api/auth/login
    - Profile: GET /api/auth/profile
+   - Update Profile: PUT /api/auth/profile
+   - Change Password: PUT /api/auth/change-password
+   - Logout: POST /api/auth/logout
    - Predict Mood: POST /api/predict-mood
+   - Create Journal: POST /api/journal
+   - Get Journals: GET /api/journal
+   - Get Journal by ID: GET /api/journal/{id}
+   - Update Journal: PUT /api/journal/{id}
+   - Delete Journal: DELETE /api/journal/{id}
 ```
 
 ### Terminal 2: ML API Server
@@ -75,7 +83,7 @@ pip install -r requirements.txt
 pip install tf-keras
 
 # Jalankan ML API server
-uvicorn app.main:app --reload --port 8080
+uvicorn app.main:app --reload 
 ```
 
 **⚠️ Catatan Penting untuk ML API:**
@@ -87,7 +95,7 @@ uvicorn app.main:app --reload --port 8080
 **Output yang diharapkan:**
 
 ```
-INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ✅ Model loaded successfully
 INFO:     Application startup complete.
 ```
@@ -129,7 +137,7 @@ File: `config.js`
 
 ### ML API Configuration
 
-- **Port:** 8080 (diubah dari default 8000)
+- **Port:** 8000
 - **Model Path:** `app/model`
 
 ## 📊 Testing API
@@ -143,7 +151,7 @@ curl http://localhost:9000/api/health
 ### Test ML API
 
 ```bash
-curl -X POST http://localhost:8080/predict \
+curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"text":"Hari ini saya sangat senang sekali"}'
 ```
@@ -187,8 +195,16 @@ moodmate/
 - `GET /api/health` - Health check
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
-- `GET /api/auth/profile` - Get user profile (requires JWT)
-- `POST /api/predict-mood` - Predict mood (requires JWT)
+- `GET /api/auth/profile` - Get user profile
+- `PUT //api/auth/profile` - Update user profile
+- `PUT /api/auth/change-password` - Update Password
+- `POST /api/predict-mood` - Predict mood
+- `POST /api/journal` - Create Journal
+- `GET /api/journal` - Get Journals
+- `GET /api/journal/{id}` - Get Journal by ID
+- `PUT /api/journal/{id}` - Update Journal
+- `DELETE /api/journal/{id}` - Delete Journal
+- `POST /api/auth/logout` - User logout
 
 ### ML API (Port 8080)
 
@@ -208,4 +224,5 @@ Jika mengalami masalah, pastikan:
 2. Port tidak bentrok dengan aplikasi lain
 3. Semua 3 service berjalan bersamaan
 4. Check console output untuk error details
+
 # moodMate
