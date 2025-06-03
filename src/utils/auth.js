@@ -74,7 +74,6 @@ export const checkTokenAndLogout = () => {
   const token = getAccessToken();
   if (token && isTokenExpired(token)) {
     removeAccessToken();
-    // Redirect ke halaman login
     window.location.href = "/login";
     return false;
   }
