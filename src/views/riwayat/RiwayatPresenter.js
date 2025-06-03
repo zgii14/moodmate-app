@@ -1,694 +1,912 @@
+import ApiService from "../../data/api.js";
+import { db } from "../../utils/firebase";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  getDoc,
+} from "firebase/firestore";
+import { getRandomActivities } from "../../data/moodActivities";
+import { getRandomSongs } from "../../data/moodSongs";
+
 export default function RiwayatPresenter() {
-  let currentMonth = new Date().getMonth();
-  let currentYear = new Date().getFullYear();
-  let originalData = [];
+  console.log("RiwayatPresenter initialized");
 
-  function init() {
-    const searchInput = document.getElementById("searchInput");
-    if (searchInput) {
-      searchInput.addEventListener("input", debounce(filterData, 300));
+  let allJournals = [];
+  let filteredJournals = [];
+  let currentView = "calendar";
+  let currentDate = new Date();
+  let selectedMonth = currentDate.getMonth();
+  let selectedYear = currentDate.getFullYear();
+  let selectedMoodFilter = "all";
+
+  const moodColors = {
+    happy:
+      "bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-200",
+    sad: "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-200",
+    anger:
+      "bg-red-100 border-red-300 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-200",
+    fear: "bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-200",
+    love: "bg-pink-100 border-pink-300 text-pink-800 dark:bg-pink-900/30 dark:border-pink-800 dark:text-pink-200",
+    neutral:
+      "bg-gray-100 border-gray-300 text-gray-800 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
+  };
+
+  const moodEmojis = {
+    happy: "😊",
+    sad: "😢",
+    anger: "😠",
+    fear: "😰",
+    love: "💖",
+    neutral: "😐",
+  };
+
+  const monthNames = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+
+  setTimeout(() => {
+    initializeRiwayatPage();
+  }, 300);
+
+  async function initializeRiwayatPage() {
+    try {
+      await setupEventListeners();
+      await loadAllJournals();
+      renderCurrentView();
+    } catch (error) {
+      console.error("Initialize error:", error);
+      showNotification("Gagal memuat data riwayat", "error");
+    }
+  }
+
+  function setupEventListeners() {
+    // View toggle buttons
+    const calendarViewBtn = document.getElementById("calendarViewBtn");
+    const listViewBtn = document.getElementById("listViewBtn");
+
+    if (calendarViewBtn) {
+      calendarViewBtn.addEventListener("click", () => switchView("calendar"));
+    }
+    if (listViewBtn) {
+      listViewBtn.addEventListener("click", () => switchView("list"));
     }
 
-    const moodFilter = document.getElementById("moodFilter");
+    const prevMonthBtn = document.getElementById("prevMonthBtn");
+    const nextMonthBtn = document.getElementById("nextMonthBtn");
+
+    if (prevMonthBtn) {
+      prevMonthBtn.addEventListener("click", () => navigateMonth(-1));
+    }
+    if (nextMonthBtn) {
+      nextMonthBtn.addEventListener("click", () => navigateMonth(1));
+    }
+
     const monthFilter = document.getElementById("monthFilter");
+    const moodFilter = document.getElementById("moodFilter");
 
-    if (moodFilter) moodFilter.addEventListener("change", filterData);
-    if (monthFilter) monthFilter.addEventListener("change", filterData);
-
-    document.addEventListener("keydown", handleKeyboardShortcuts);
-    if (searchInput) {
-      searchInput.focus();
+    if (monthFilter) {
+      monthFilter.addEventListener("change", (e) => {
+        const [year, month] = e.target.value.split("-");
+        selectedYear = parseInt(year);
+        selectedMonth = parseInt(month);
+        filterAndRenderJournals();
+      });
     }
 
-    loadOriginalData();
+    if (moodFilter) {
+      moodFilter.addEventListener("change", (e) => {
+        selectedMoodFilter = e.target.value;
+        filterAndRenderJournals();
+      });
+    }
+
+    const backBtn = document.getElementById("backToJournalBtn");
+    if (backBtn) {
+      backBtn.addEventListener("click", () => {
+        location.hash = "/journal";
+      });
+    }
+
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const modalOverlay = document.getElementById("journalModal");
+
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener("click", closeModal);
+    }
+    if (modalOverlay) {
+      modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) {
+          closeModal();
+        }
+      });
+    }
   }
-  function checkMoodMatch(itemMood, filterMood) {
-    if (!itemMood || !filterMood) return true;
 
-    const moodMapping = {
-      senang: ["senang", "happy"],
-      sedih: ["sedih", "sad"],
-      marah: ["marah", "anger"],
-      takut: ["takut", "fear"],
-      biasa: ["biasa", "neutral"],
-      cinta: ["cinta", "love"],
-    };
-
-    const normalizedItemMood = itemMood.toLowerCase();
-    const normalizedFilterMood = filterMood.toLowerCase();
-
-    console.log("Checking mood match:", {
-      itemMood: normalizedItemMood,
-      filterMood: normalizedFilterMood,
-    }); 
-
-    if (normalizedItemMood === normalizedFilterMood) {
-      console.log("Direct mood match found"); 
-      return true;
-    }
-
-    for (const [key, values] of Object.entries(moodMapping)) {
-      if (
-        values.includes(normalizedFilterMood) &&
-        values.includes(normalizedItemMood)
-      ) {
-        console.log("Mapped mood match found:", key); 
-        return true;
+  async function loadAllJournals() {
+    try {
+      const userEmail = getCurrentUserEmail();
+      if (!userEmail) {
+        throw new Error("User email not found");
       }
-    }
 
-    console.log("No mood match found"); 
-    return false;
+      showLoading(true);
+
+      const q = query(
+        collection(db, "journal_entries"),
+        where("userEmail", "==", userEmail),
+        orderBy("createdAt", "desc")
+      );
+
+      const querySnapshot = await getDocs(q);
+      allJournals = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const processedEntry = processJournalData(doc.id, data);
+        allJournals.push(processedEntry);
+      });
+
+      filterAndRenderJournals();
+    } catch (error) {
+      console.error("Error loading journals:", error);
+      showNotification("Gagal memuat data riwayat", "error");
+    } finally {
+      showLoading(false);
+    }
   }
 
-  function checkMonthMatch(itemDate, filterMonth) {
-    if (!itemDate || !filterMonth) return true;
-
-    console.log("Checking month match:", { itemDate, filterMonth }); 
+  function processJournalData(id, data) {
+    let processedDate;
+    let processedTime;
+    let dateObj;
 
     try {
-      let itemMonth;
-
-      if (itemDate.includes("-") && itemDate.split("-").length === 3) {
-        const dateParts = itemDate.split("-");
-        itemMonth = dateParts[1]; 
-      }
-      else if (itemDate.includes(",")) {
-        const bulanMap = {
-          januari: "01",
-          februari: "02",
-          maret: "03",
-          april: "04",
-          mei: "05",
-          juni: "06",
-          juli: "07",
-          agustus: "08",
-          september: "09",
-          oktober: "10",
-          november: "11",
-          desember: "12",
-        };
-
-        const parts = itemDate.split(",")[1]?.trim().split(" ");
-        if (parts && parts.length === 3) {
-          const namaBulan = parts[1].toLowerCase();
-          itemMonth = bulanMap[namaBulan] || null;
-        }
-      }
-      else {
-        const date = new Date(itemDate);
-        if (!isNaN(date.getTime())) {
-          itemMonth = String(date.getMonth() + 1).padStart(2, "0");
-        }
+      if (data.createdAt && data.createdAt.toDate) {
+        dateObj = data.createdAt.toDate();
+      } else if (data.createdAt) {
+        dateObj = new Date(data.createdAt);
+      } else {
+        dateObj = new Date();
       }
 
-      // Normalize filter month to match format
-      const normalizedFilterMonth = String(filterMonth).padStart(2, "0");
+      processedDate = dateObj.toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
 
-      console.log("Month comparison:", { itemMonth, normalizedFilterMonth }); // Debug log
-
-      const matches = itemMonth === normalizedFilterMonth;
-      console.log("Month match result:", matches); // Debug log
-
-      return matches;
+      processedTime = dateObj.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     } catch (error) {
-      console.warn("Error parsing date:", itemDate, error);
-      return false;
+      console.error("Error processing date:", error);
+      dateObj = new Date();
+      processedDate = dateObj.toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      processedTime = dateObj.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     }
+
+    return {
+      id,
+      ...data,
+      tanggal: processedDate,
+      waktu: processedTime, // Tambahkan waktu
+      dateObj: dateObj,
+      mood: data.mood || "neutral",
+      catatan: data.catatan || data.text || "",
+      aktivitas:
+        data.aktivitas || data.activities || data.selectedActivities || [],
+    };
   }
 
-  // FIXED: Fungsi untuk update calendar view
-  function updateCalendarView(data) {
-    const calendarContainer = document.getElementById("calendarView");
-    if (!calendarContainer) return;
+  function filterAndRenderJournals() {
+    filteredJournals = allJournals.filter((journal) => {
+      const journalDate = journal.dateObj;
+      const journalMonth = journalDate.getMonth();
+      const journalYear = journalDate.getFullYear();
 
-    // Group data by date dengan handling format tanggal yang berbeda
-    const dataByDate = {};
-    data.forEach((item) => {
-      const dateKey = normalizeDate(item.tanggal);
-      if (dateKey) {
-        if (!dataByDate[dateKey]) {
-          dataByDate[dateKey] = [];
-        }
-        dataByDate[dateKey].push(item);
-      }
+      const monthMatch =
+        journalMonth === selectedMonth && journalYear === selectedYear;
+      const moodMatch =
+        selectedMoodFilter === "all" || journal.mood === selectedMoodFilter;
+
+      return monthMatch && moodMatch;
     });
 
-    // Regenerate calendar with filtered data
-    calendarContainer.innerHTML = generateCalendar(
-      currentMonth,
-      currentYear,
-      dataByDate
-    );
+    renderCurrentView();
+    updateFilterInfo();
   }
 
-  // ADDED: Fungsi untuk normalize tanggal ke format YYYY-MM-DD
-  function normalizeDate(dateStr) {
-    if (!dateStr) return null;
+  function switchView(view) {
+    currentView = view;
 
-    try {
-      // Format "YYYY-MM-DD"
-      if (dateStr.includes("-") && dateStr.split("-").length === 3) {
-        return dateStr;
+    const calendarBtn = document.getElementById("calendarViewBtn");
+    const listBtn = document.getElementById("listViewBtn");
+
+    if (calendarBtn && listBtn) {
+      if (view === "calendar") {
+        calendarBtn.classList.add("bg-blue-500", "text-white");
+        calendarBtn.classList.remove("bg-gray-200", "text-gray-700");
+        listBtn.classList.add("bg-gray-200", "text-gray-700");
+        listBtn.classList.remove("bg-blue-500", "text-white");
+      } else {
+        listBtn.classList.add("bg-blue-500", "text-white");
+        listBtn.classList.remove("bg-gray-200", "text-gray-700");
+        calendarBtn.classList.add("bg-gray-200", "text-gray-700");
+        calendarBtn.classList.remove("bg-blue-500", "text-white");
       }
+    }
 
-      // Format "Hari, DD Bulan YYYY"
-      if (dateStr.includes(",")) {
-        const bulanMap = {
-          januari: "01",
-          februari: "02",
-          maret: "03",
-          april: "04",
-          mei: "05",
-          juni: "06",
-          juli: "07",
-          agustus: "08",
-          september: "09",
-          oktober: "10",
-          november: "11",
-          desember: "12",
-        };
+    renderCurrentView();
+  }
 
-        const parts = dateStr.split(",")[1]?.trim().split(" ");
-        if (parts && parts.length === 3) {
-          const [tanggal, namaBulan, tahun] = parts;
-          const bulan = bulanMap[namaBulan.toLowerCase()];
-          if (bulan) {
-            return `${tahun}-${bulan}-${tanggal.padStart(2, "0")}`;
-          }
-        }
-      }
-
-      // Try parsing as Date
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      }
-
-      return null;
-    } catch (error) {
-      console.warn("Error normalizing date:", dateStr, error);
-      return null;
+  function renderCurrentView() {
+    if (currentView === "calendar") {
+      renderCalendarView();
+    } else {
+      renderListView();
     }
   }
 
-  // UPDATED: Fungsi untuk update list view
-  function updateListView(data) {
-    const listContainer = document.getElementById("listContainer");
-    if (!listContainer) return;
+  function renderCalendarView() {
+    const container = document.getElementById("contentContainer");
+    if (!container) return;
 
-    if (data.length === 0) {
-      listContainer.innerHTML = `
-        <div class="p-8 text-center text-gray-500 dark:text-gray-400">
-          <i class="fas fa-search text-4xl mb-4"></i>
-          <p>Tidak ada catatan yang ditemukan</p>
+    const calendarHTML = generateCalendarHTML();
+    container.innerHTML = calendarHTML;
+    updateMonthYearDisplay();
+  }
+
+  function generateCalendarHTML() {
+    const firstDay = new Date(selectedYear, selectedMonth, 1);
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+    const daysInCalendar = 42;
+    let calendarHTML = `
+      <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-6 border border-gray-100 dark:border-gray-700">
+        <div class="grid grid-cols-7 gap-2 mb-4">
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Min</div>
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Sen</div>
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Sel</div>
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Rab</div>
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Kam</div>
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Jum</div>
+          <div class="text-center font-bold text-gray-600 dark:text-gray-300 py-2">Sab</div>
+        </div>
+        <div class="grid grid-cols-7 gap-2">
+    `;
+
+    for (let i = 0; i < daysInCalendar; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+
+      const isCurrentMonth = currentDate.getMonth() === selectedMonth;
+      const isToday = currentDate.toDateString() === new Date().toDateString();
+      const journalsForDay = getJournalsForDate(currentDate);
+
+      const dayClasses = [
+        "calendar-day min-h-[80px] p-2 rounded-lg border transition-all duration-200 cursor-pointer",
+        isCurrentMonth
+          ? "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+          : "bg-gray-100 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400",
+        isToday ? "ring-2 ring-blue-500" : "",
+        journalsForDay.length > 0 ? "has-journals" : "",
+      ].join(" ");
+
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+      const day = String(currentDate.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
+
+      calendarHTML += `
+        <div class="${dayClasses}" data-date="${dateStr}" onclick="handleDateClick('${dateStr}')">
+          <div class="text-sm font-semibold mb-1 ${
+            isToday ? "text-blue-600" : ""
+          }">${currentDate.getDate()}</div>
+          ${
+            journalsForDay.length > 0
+              ? `
+            <div class="space-y-1">
+              ${journalsForDay
+                .slice(0, 2)
+                .map(
+                  (journal) => `
+                <div class="text-xs px-1 py-0.5 rounded ${
+                  moodColors[journal.mood] || moodColors.neutral
+                } truncate">
+                  ${
+                    moodEmojis[journal.mood] || "😐"
+                  } ${journal.catatan.substring(0, 10)}${
+                    journal.catatan.length > 10 ? "..." : ""
+                  }
+                </div>
+              `
+                )
+                .join("")}
+              ${
+                journalsForDay.length > 2
+                  ? `<div class="text-xs text-gray-500 font-medium">+${
+                      journalsForDay.length - 2
+                    } lainnya</div>`
+                  : ""
+              }
+            </div>
+          `
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    calendarHTML += `
+        </div>
+      </div>
+    `;
+
+    return calendarHTML;
+  }
+
+  function renderListView() {
+    const container = document.getElementById("contentContainer");
+    if (!container) return;
+
+    if (filteredJournals.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-12">
+          <div class="text-6xl mb-4">📖</div>
+          <h3 class="text-xl font-bold text-gray-600 dark:text-gray-300 mb-2">Belum Ada Catatan</h3>
+          <p class="text-gray-500 dark:text-gray-400">Tidak ada catatan journal untuk filter yang dipilih</p>
         </div>
       `;
       return;
     }
 
-    listContainer.innerHTML = data
-      .map(
-        (item) => `
-      <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors catatan-item" data-mood="${
-        item.mood
-      }" data-date="${item.tanggal}">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-2xl">${getMoodIcon(item.mood)}</span>
-              <span class="text-sm text-gray-500 dark:text-gray-300">${formatDisplayDate(
-                item.tanggal
-              )}</span>
+    const listHTML = `
+      <div class="space-y-4">
+        ${filteredJournals
+          .map(
+            (journal) => `
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 
+                      hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02]"
+               onclick="openJournalDetail('${journal.id}')">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl">${
+                  moodEmojis[journal.mood] || "😐"
+                }</span>
+                <div>
+                  <h3 class="font-bold text-lg text-gray-800 dark:text-white">${getMoodText(
+                    journal.mood
+                  )}</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    ${journal.tanggal}
+                    <span class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full ml-2">
+                      ${journal.waktu}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-medium ${
+                moodColors[journal.mood] || moodColors.neutral
+              }">
+                ${getMoodText(journal.mood)}
+              </span>
             </div>
-            <p class="text-gray-800 dark:text-white">${item.catatan}</p>
-          </div>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-  }
-
-  // ADDED: Fungsi untuk format tanggal untuk display
-  function formatDisplayDate(dateStr) {
-    try {
-      // Jika sudah dalam format yang readable, return as is
-      if (dateStr.includes(",")) {
-        return dateStr;
-      }
-
-      // Convert dari format YYYY-MM-DD ke format readable
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString("id-ID", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-      }
-
-      return dateStr;
-    } catch (error) {
-      return dateStr;
-    }
-  }
-
-  // UPDATED: Fungsi untuk generate calendar
-  function generateCalendar(month, year, dataByDate = {}) {
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const monthNames = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-    const currentDate = new Date();
-
-    let calendar = `
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-            <svg class="w-5 h-5 text-gray-800 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-          </button>
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">${
-            monthNames[month]
-          } ${year}</h3>
-          <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-            <svg class="w-5 h-5 text-gray-800 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </button>
-        </div>
-
-        <div class="grid grid-cols-7 gap-1 mb-2">
-          ${["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
-            .map(
-              (d) =>
-                `<div class="p-2 text-center font-medium text-gray-600 dark:text-gray-300">${d}</div>`
-            )
-            .join("")}
-        </div>
-
-        <div class="grid grid-cols-7 gap-1">
-    `;
-
-    for (let i = 0; i < firstDay; i++) {
-      calendar += '<div class="p-2"></div>';
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(
-        day
-      ).padStart(2, "0")}`;
-      const dayData = dataByDate[dateKey];
-      const hasData = dayData && dayData.length > 0;
-      const isToday =
-        day === currentDate.getDate() &&
-        month === currentDate.getMonth() &&
-        year === currentDate.getFullYear();
-
-      let moodIcons = "";
-      if (hasData) {
-        const uniqueMoods = [...new Set(dayData.map((item) => item.mood))];
-        moodIcons = uniqueMoods.map((mood) => getMoodIcon(mood)).join("");
-      }
-
-      calendar += `
-        <div class="relative">
-          <button 
-            onclick="showDayDetails('${dateKey}')"
-            class="w-full p-2 h-12 rounded-lg border transition-all duration-200 
-              ${
-                isToday
-                  ? "bg-blue-500 text-white font-bold border-blue-600"
-                  : hasData
-                  ? "bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 border-blue-200 dark:border-blue-700 text-gray-800 dark:text-white"
-                  : "hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white border-gray-200 dark:border-gray-600"
-              }"
-          >
-            <div class="text-sm">${day}</div>
+            
+            <p class="text-gray-700 dark:text-gray-300 mb-4 line-clamp-2">
+              "${journal.catatan}"
+            </p>
+            
             ${
-              moodIcons
-                ? `<div class="text-xs absolute top-0 right-0 p-1">${moodIcons}</div>`
+              journal.aktivitas && journal.aktivitas.length > 0
+                ? `
+              <div class="flex flex-wrap gap-2 mb-3">
+                ${journal.aktivitas
+                  .slice(0, 3)
+                  .map(
+                    (aktivitas) => `
+                  <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 
+                               rounded-lg text-xs font-medium">${aktivitas}</span>
+                `
+                  )
+                  .join("")}
+                ${
+                  journal.aktivitas.length > 3
+                    ? `
+                  <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 
+                               rounded-lg text-xs">+${
+                                 journal.aktivitas.length - 3
+                               } lainnya</span>
+                `
+                    : ""
+                }
+              </div>
+            `
                 : ""
             }
-          </button>
-        </div>
-      `;
-    }
-
-    calendar += "</div></div>";
-    return calendar;
-  }
-
-  // FIXED: Fungsi untuk mengubah bulan - clear month filter when manually navigating
-  window.changeMonth = function (direction) {
-    currentMonth += direction;
-    if (currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    } else if (currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
-    }
-
-    // Clear month filter when manually navigating
-    const monthFilter = document.getElementById("monthFilter");
-    if (monthFilter) {
-      monthFilter.value = "";
-    }
-
-    filterData(); // Re-apply filters after changing month
-  };
-
-  // Fungsi untuk toggle view
-  window.toggleView = function () {
-    const calendarView = document.getElementById("calendarView");
-    const listView = document.getElementById("listView");
-    const toggleButton = document.getElementById("viewToggle");
-
-    if (calendarView && listView && toggleButton) {
-      if (calendarView.classList.contains("hidden")) {
-        // Switch to calendar view
-        calendarView.classList.remove("hidden");
-        listView.classList.add("hidden");
-        toggleButton.innerHTML = `
-          <i class="fas fa-list"></i>
-          <span>List View</span>
-        `;
-        filterData(); // Apply current filters to calendar view
-      } else {
-        // Switch to list view
-        calendarView.classList.add("hidden");
-        listView.classList.remove("hidden");
-        toggleButton.innerHTML = `
-          <i class="fas fa-calendar-alt"></i>
-          <span>Calendar View</span>
-        `;
-        filterData(); // Apply current filters to list view
-      }
-    }
-  };
-
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-
-  function handleKeyboardShortcuts(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === "f") {
-      e.preventDefault();
-      const searchInput = document.getElementById("searchInput");
-      if (searchInput) {
-        searchInput.focus();
-        searchInput.select();
-      }
-    }
-
-    if (e.key === "Escape") {
-      const modal = document.getElementById("dayModal");
-      if (modal && !modal.classList.contains("hidden")) {
-        closeDayModal();
-      }
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-      e.preventDefault();
-      toggleView();
-    }
-  }
-
-  // UPDATED: Fungsi untuk menampilkan modal dengan semua catatan harian
-  window.showDayDetails = function (dateKey) {
-    const allData = JSON.parse(localStorage.getItem("catatan") || "[]");
-
-    const selected = allData.filter((entry) => {
-      const normalizedDate = normalizeDate(entry.tanggal);
-      return normalizedDate === dateKey;
-    });
-
-    if (selected.length > 0) {
-      showDayModal(dateKey, selected);
-    } else {
-      alert("Tidak ada catatan valid pada tanggal ini.");
-    }
-  };
-
-  // Fungsi untuk menampilkan modal dengan semua catatan harian
-  function showDayModal(dateKey, entries) {
-    // Hapus modal yang sudah ada
-    const existingModal = document.getElementById("dayModal");
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    // Format tanggal untuk display
-    const date = new Date(dateKey);
-    const formattedDate = date.toLocaleDateString("id-ID", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-    // Buat modal HTML
-    const modalHTML = `
-      <div id="dayModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-          <!-- Header -->
-          <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
-            <div class="flex justify-between items-center">
-              <div>
-                <h2 class="text-2xl font-bold mb-2">📅 Catatan Harian</h2>
-                <p class="text-blue-100">${formattedDate}</p>
-                <p class="text-sm text-blue-200">${
-                  entries.length
-                } catatan ditemukan</p>
-              </div>
-              <button onclick="closeDayModal()" class="text-white hover:text-gray-200 text-2xl font-bold">
-                ×
+            
+            <div class="text-right">
+              <button class="text-blue-500 hover:text-blue-700 text-sm font-medium">
+                Lihat Detail →
               </button>
             </div>
           </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
 
-          <!-- Content -->
-          <div class="p-6 max-h-[calc(90vh-150px)] overflow-y-auto">
-            <div class="space-y-6">
-              ${entries
+    container.innerHTML = listHTML;
+  }
+
+  function getJournalsForDate(date) {
+    const targetDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const targetDateStr = targetDate.toDateString();
+
+    return allJournals.filter((journal) => {
+      const journalDate = new Date(
+        journal.dateObj.getFullYear(),
+        journal.dateObj.getMonth(),
+        journal.dateObj.getDate()
+      );
+
+      const dateMatch = journalDate.toDateString() === targetDateStr;
+
+      const moodMatch =
+        selectedMoodFilter === "all" || journal.mood === selectedMoodFilter;
+
+      return dateMatch && moodMatch;
+    });
+  }
+
+  function navigateMonth(direction) {
+    selectedMonth += direction;
+
+    if (selectedMonth < 0) {
+      selectedMonth = 11;
+      selectedYear--;
+    } else if (selectedMonth > 11) {
+      selectedMonth = 0;
+      selectedYear++;
+    }
+
+    updateMonthYearDisplay();
+    filterAndRenderJournals();
+  }
+
+  function updateMonthYearDisplay() {
+    const monthYearElement = document.getElementById("currentMonthYear");
+    if (monthYearElement) {
+      monthYearElement.textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
+    }
+  }
+
+  function updateFilterInfo() {
+    const totalElement = document.getElementById("totalJournals");
+    if (totalElement) {
+      totalElement.textContent = `${filteredJournals.length} catatan`;
+    }
+  }
+
+  window.handleDateClick = function (dateStr) {
+    try {
+      const [year, month, day] = dateStr.split("-").map((num) => parseInt(num));
+      const targetDate = new Date(year, month - 1, day);
+      const journalsForDay = getJournalsForDate(targetDate);
+
+      if (journalsForDay.length > 0) {
+        showDateJournals(targetDate, journalsForDay);
+      } else {
+        const message =
+          selectedMoodFilter === "all"
+            ? "Tidak ada catatan untuk tanggal ini"
+            : `Tidak ada catatan dengan mood "${getMoodText(
+                selectedMoodFilter
+              )}" untuk tanggal ini`;
+        showNotification(message, "info");
+      }
+    } catch (error) {
+      console.error("Error handling date click:", error);
+      showNotification("Terjadi kesalahan saat membuka catatan", "error");
+    }
+  };
+
+  window.openJournalDetail = function (journalId) {
+    const journal = allJournals.find((j) => j.id === journalId);
+    if (journal) {
+      showJournalModal(journal);
+    }
+  };
+
+  let currentDateJournals = null;
+
+  function showDateJournals(date, journals) {
+    currentDateJournals = { date, journals };
+    const formattedDate = date.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const modalContent = `
+      <div class="space-y-6">
+        <!-- Header -->
+        <div class="text-center pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">${formattedDate}</h3>
+          <p class="text-gray-600 dark:text-gray-300 font-medium">
+            <span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm">
+              📊 ${journals.length} catatan ditemukan
+            </span>
+          </p>
+        </div>
+        
+        <!-- Journals List -->
+        <div class="space-y-3">
+          ${journals
+            .map(
+              (journal) => `
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 
+                        rounded-xl p-3 cursor-pointer hover:from-blue-50 hover:to-blue-100 
+                        dark:hover:from-blue-900/30 dark:hover:to-blue-800/30 
+                        transition-all duration-300 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500 
+                        border border-gray-200 dark:border-gray-600"
+                 onclick="openJournalDetail('${journal.id}')">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="flex-shrink-0">
+                  <span class="text-2xl">${
+                    moodEmojis[journal.mood] || "😐"
+                  }</span>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-bold text-base text-gray-800 dark:text-white">${getMoodText(
+                    journal.mood
+                  )}</h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    ${journal.waktu}
+                  </p>
+                </div>
+                <div class="flex-shrink-0">
+                  <span class="px-2 py-1 rounded-full text-xs font-medium ${
+                    moodColors[journal.mood] || moodColors.neutral
+                  }">
+                    ${getMoodText(journal.mood)}
+                  </span>
+                </div>
+              </div>
+              <p class="text-gray-700 dark:text-gray-300 text-xs line-clamp-2 mb-2 italic">
+                "${journal.catatan}"
+              </p>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Klik untuk detail
+                </div>
+                <span class="text-blue-500 text-xs font-medium flex items-center gap-1">
+                  Detail 
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+
+    showModal(modalContent);
+  }
+
+  function showJournalModal(journal) {
+    const recommendedSongs = getRandomSongs(journal.mood, 3);
+    const recommendedActivities = getRandomActivities(journal.mood, 3);
+
+    const modalContent = `
+      <div class="space-y-6">
+        <!-- Header Section -->
+        <div class="text-center pb-6 border-b border-gray-200 dark:border-gray-700">
+        <button onclick="backToDateJournals()" class="flex items-center gap-2 text-blue-500 hover:text-blue-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Kembali
+          </button>  
+        <div class="flex items-center justify-center gap-4 mb-4">
+            <div class="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 
+                        rounded-full p-4 border-2 border-blue-200 dark:border-blue-700">
+              <span class="text-5xl">${moodEmojis[journal.mood] || "😐"}</span>
+            </div>
+            <div class="text-left">
+              <h3 class="text-3xl font-bold text-gray-800 dark:text-white mb-1">${getMoodText(
+                journal.mood
+              )}</h3>
+              <p class="text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                <!-- SVG Tanggal (tetap sama) -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                ${journal.tanggal}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  ${journal.waktu}
+              </p>
+            </div>
+          </div>
+          
+          <span class="px-6 py-2 rounded-full text-sm font-bold ${
+            moodColors[journal.mood] || moodColors.neutral
+          } shadow-lg">
+            ${getMoodText(journal.mood)}
+          </span>
+        </div>
+        
+        <!-- Content Sections -->
+        <div class="space-y-6">
+          <!-- Catatan Section -->
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/30 
+                      rounded-2xl p-6 border border-blue-200 dark:border-blue-700">
+            <h4 class="font-bold text-xl text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+              <span class="text-2xl">📝</span> Catatan
+            </h4>
+            <div class="bg-white/80 dark:bg-gray-800/80 rounded-xl p-4 backdrop-blur-sm">
+              <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-base">
+                "${journal.catatan}"
+              </p>
+            </div>
+          </div>
+          
+          ${
+            journal.aktivitas && journal.aktivitas.length > 0
+              ? `
+            <!-- Aktivitas Section -->
+            <div class="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/30 
+                        rounded-2xl p-6 border border-green-200 dark:border-green-700">
+              <h4 class="font-bold text-xl text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <span class="text-2xl">🎯</span> Aktivitas yang Dilakukan
+              </h4>
+              <div class="flex flex-wrap gap-3">
+                ${journal.aktivitas
+                  .map(
+                    (aktivitas) => `
+                  <span class="px-4 py-2 bg-white/80 dark:bg-gray-800/80 text-green-800 dark:text-green-200 
+                               rounded-xl text-sm font-medium shadow-sm border border-green-300 dark:border-green-600
+                               hover:shadow-md transition-shadow">
+                    ${aktivitas}
+                  </span>
+                `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `
+              : ""
+          }
+          
+          <!-- Rekomendasi Aktivitas -->
+          <div class="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30 
+                      rounded-2xl p-5 border border-amber-200 dark:border-amber-700">
+            <h4 class="font-bold text-lg text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              <span class="text-xl">🌟</span> Rekomendasi Aktivitas
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              ${recommendedActivities
                 .map(
-                  (entry, index) => `
-                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border-l-4 border-blue-500">
-                  <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-center space-x-3">
-                      <span class="text-3xl">${getMoodIcon(entry.mood)}</span>
-                      <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                          Catatan #${index + 1}
-                        </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                          ${getMoodText(entry.mood)}
-                        </p>
-                      </div>
-                    </div>
-                    <button 
-                      onclick="viewFullEntry(${JSON.stringify(entry).replace(
-                        /"/g,
-                        "&quot;"
-                      )})"
-                      class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                    >
-                      Lihat Detail
-                    </button>
+                  (activity) => `
+                <div class="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 border border-amber-300 dark:border-amber-600
+                            hover:shadow-md hover:bg-white dark:hover:bg-gray-700 transition-all duration-300">
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg flex-shrink-0">🎯</span>
+                    <p class="text-gray-700 dark:text-gray-300 text-xs font-medium">${activity}</p>
                   </div>
-                  
-                  <div class="mb-4">
-                    <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
-                      ${entry.catatan || "Tidak ada catatan"}
-                    </p>
-                  </div>
-
-                  ${
-                    entry.aktivitas && entry.aktivitas.length > 0
-                      ? `
-                    <div class="mb-3">
-                      <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Aktivitas:</p>
-                      <div class="flex flex-wrap gap-2">
-                        ${entry.aktivitas
-                          .map(
-                            (activity) => `
-                          <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs">
-                            ${activity}
-                          </span>
-                        `
-                          )
-                          .join("")}
-                      </div>
-                    </div>
-                  `
-                      : ""
-                  }
-
-                  ${
-                    entry.confidence
-                      ? `
-                    <div class="mt-3 pt-3 border-t dark:border-gray-600">
-                      <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-600 dark:text-gray-400">Tingkat Keyakinan AI:</span>
-                        <span class="font-medium text-gray-800 dark:text-white">${Math.round(
-                          entry.confidence
-                        )}%</span>
-                      </div>
-                      <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-1">
-                        <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style="width: ${Math.min(
-                          Math.round(entry.confidence),
-                          100
-                        )}%"></div>
-                      </div>
-                    </div>
-                  `
-                      : ""
-                  }
                 </div>
               `
                 )
                 .join("")}
             </div>
           </div>
-
-          <!-- Footer -->
-          <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 flex justify-end space-x-3">
-            <button 
-              onclick="closeDayModal()" 
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-            >
-              Tutup
-            </button>
-            <button 
-              onclick="location.hash='/journal'" 
-              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-            >
-              Tulis Catatan Baru
-            </button>
+          
+          <!-- Rekomendasi Lagu -->
+          <div class="bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/30 
+                      rounded-2xl p-5 border border-purple-200 dark:border-purple-700">
+            <h4 class="font-bold text-lg text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              <span class="text-xl">🎵</span> Rekomendasi Lagu
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              ${recommendedSongs
+                .map(
+                  (song) => `
+                <div class="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 border border-purple-300 dark:border-purple-600
+                            hover:shadow-md hover:bg-white dark:hover:bg-gray-700 transition-all duration-300">
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg flex-shrink-0">${
+                      song.emoji || "🎵"
+                    }</span>
+                    <div class="flex-1">
+                      <h5 class="font-bold text-gray-800 dark:text-white text-xs mb-1">${
+                        song.title
+                      }</h5>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">${
+                        song.artist
+                      }</p>
+                      <a href="${song.link}" target="_blank" 
+                         class="text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 
+                                text-xs font-medium inline-flex items-center gap-1 hover:underline">
+                        <span>Dengarkan</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
           </div>
+        </div>
+        
+        <div class="flex-shrink-0 flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button onclick="viewJournalResult('${journal.id}')" 
+                  class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+            Lihat Hasil
+          </button>
         </div>
       </div>
     `;
 
-    // Tambahkan modal ke DOM
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-    // Prevent background scroll
-    document.body.style.overflow = "hidden";
+    showModal(modalContent);
   }
 
-  // Fungsi untuk menutup modal
-  window.closeDayModal = function () {
-    const modal = document.getElementById("dayModal");
-    if (modal) {
-      modal.remove();
-      document.body.style.overflow = "auto";
+  window.backToDateJournals = function () {
+    if (currentDateJournals) {
+      showDateJournals(currentDateJournals.date, currentDateJournals.journals);
+    } else {
+      closeModal();
     }
   };
 
-  // Fungsi untuk melihat detail lengkap satu catatan
-  window.viewFullEntry = function (entry) {
-    // Simpan entry yang dipilih dan redirect ke halaman hasil
-    localStorage.setItem("selectedEntry", JSON.stringify(entry));
-    closeDayModal();
+  function showModal(content) {
+    const modal = document.getElementById("journalModal");
+    const modalBody = document.getElementById("journalModalBody");
+
+    if (modal && modalBody) {
+      modalBody.innerHTML = content;
+      modal.classList.remove("hidden");
+      modal.classList.add("show");
+      document.body.style.overflow = "hidden";
+
+      setTimeout(() => {
+        const modalContent = modal.querySelector(".modal-content");
+        if (modalContent) {
+          modalContent.style.transform = "scale(1)";
+          modalContent.style.opacity = "1";
+        }
+      }, 10);
+    }
+  }
+
+  function closeModal() {
+    const modal = document.getElementById("journalModal");
+    if (modal) {
+      const modalContent = modal.querySelector(".modal-content");
+      if (modalContent) {
+        modalContent.style.transform = "scale(0.95)";
+        modalContent.style.opacity = "0";
+      }
+
+      setTimeout(() => {
+        modal.classList.add("hidden");
+        modal.classList.remove("show");
+        document.body.style.overflow = "auto";
+      }, 200);
+    }
+  }
+
+  window.viewJournalResult = function (journalId) {
+    localStorage.setItem("selectedEntryId", journalId);
     location.hash = "/hasil";
   };
 
-  // Helper function untuk mendapatkan emoji mood
-  function getMoodIcon(mood) {
-    const moodMap = {
-      happy: "😊",
-      sad: "😢",
-      anger: "😠",
-      fear: "😰",
-      neutral: "😐",
-      love: "💖",
-      senang: "😊",
-      sedih: "😢",
-      marah: "😠",
-      takut: "😰",
-      biasa: "😐",
-      cinta: "💖",
-    };
-
-    return moodMap[mood?.toLowerCase()] || "📝";
-  }
-
-  // Helper function untuk mendapatkan text mood
   function getMoodText(mood) {
-    const moodMap = {
+    const moodTexts = {
       happy: "Senang",
       sad: "Sedih",
       anger: "Marah",
-      fear: "Takut/Cemas",
-      neutral: "Netral",
+      fear: "Cemas",
       love: "Penuh Cinta",
-      senang: "Senang",
-      sedih: "Sedih",
-      marah: "Marah",
-      takut: "Takut",
-      biasa: "Biasa",
-      cinta: "Penuh Cinta",
+      neutral: "Netral",
     };
-
-    return moodMap[mood?.toLowerCase()] || "Tidak Diketahui";
+    return moodTexts[mood] || "Netral";
   }
 
-  // Event listener untuk menutup modal dengan ESC atau klik background
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") {
-      closeDayModal();
-    }
-  });
+  function getCurrentUserEmail() {
+    return (
+      localStorage.getItem("moodmate-current-user") ||
+      JSON.parse(localStorage.getItem("moodmate-user") || "{}")?.email
+    );
+  }
 
-  // Close modal when clicking background
-  document.addEventListener("click", function (e) {
-    if (e.target && e.target.id === "dayModal") {
-      closeDayModal();
+  function showLoading(show) {
+    const loadingElement = document.getElementById("loadingIndicator");
+    if (loadingElement) {
+      if (show) {
+        loadingElement.classList.remove("hidden");
+      } else {
+        loadingElement.classList.add("hidden");
+      }
     }
-  });
+  }
 
-  return {
-    init,
-    refreshData: () => {
-      location.reload();
-    },
-    exportData: () => {
-      const data = JSON.parse(localStorage.getItem("catatan") || "[]");
-      const dataStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "riwayat-catatan.json";
-      link.click();
-    },
-  };
+  function showNotification(message, type = "info") {
+    const notification = document.createElement("div");
+    notification.className = `fixed top-4 right-4 p-6 rounded-2xl shadow-2xl z-50 transition-all duration-500 transform translate-x-full max-w-sm border ${
+      type === "success"
+        ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400"
+        : type === "error"
+        ? "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400"
+        : "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400"
+    }`;
+
+    notification.innerHTML = `
+      <div class="flex items-center gap-3">
+        <span class="text-xl">${
+          type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️"
+        }</span>
+        <p class="font-medium">${message}</p>
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.classList.remove("translate-x-full");
+    }, 100);
+
+    setTimeout(() => {
+      notification.classList.add("translate-x-full");
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 500);
+    }, 4000);
+  }
 }
