@@ -28,9 +28,9 @@ export default async function AboutView() {
           </h2>
           
           <p class="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-6">
-            MoodMate adalah platform AI yang dirancang khusus untuk membantu Anda memahami, mengelola, dan meningkatkan kesehatan mental melalui analisis mood yang cerdas dan rekomendasi yang dipersonalisasi.
+            MoodMate menggunakan teknologi machine learning untuk membantu Anda mengenali dan memahami pola emosi dari catatan harian Anda.
           </p>
-          
+                    
           <p class="text-gray-600 dark:text-gray-400 text-base leading-relaxed">
             Dengan teknologi machine learning terdepan, kami menganalisis tulisan Anda untuk memberikan insights mendalam tentang suasana hati dan memberikan solusi yang tepat untuk setiap kondisi emosional.
           </p>
@@ -135,109 +135,108 @@ export default async function AboutView() {
     </section>
 
     <!-- Teknologi yang Kami Gunakan -->
-    <section class="py-20 bg-white dark:bg-gray-900 transition-colors duration-500">
-      <div class="max-w-6xl mx-auto px-6 md:px-16">
-        <div class="text-center mb-16 animate-fade-in-up">
-          <h2 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Teknologi <span class="text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">Terdepan</span>
-          </h2>
-          <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            MoodMate didukung oleh teknologi artificial intelligence dan machine learning untuk memberikan analisis mood yang akurat dan rekomendasi yang tepat
-          </p>
-        </div>
+<section class="py-20 bg-white dark:bg-gray-900 transition-colors duration-500">
+  <div class="max-w-6xl mx-auto px-6 md:px-16">
+    <div class="text-center mb-16 animate-fade-in-up">
+      <h2 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        Teknologi <span class="text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">Kami</span>
+      </h2>
+      <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+        MoodMate menggunakan pendekatan berbasis machine learning untuk membantu Anda memahami pola emosi
+      </p>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <!-- Teknologi Info -->
-          <div class="animate-fade-in-up">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Bagaimana AI Kami Bekerja?</h3>
-            
-            <div class="space-y-6">
-              <div class="flex items-start space-x-4">
-                <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
-                <div>
-                  <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Natural Language Processing (NLP)</h4>
-                  <p class="text-gray-600 dark:text-gray-400">Menganalisis teks dan memahami konteks emosional dari tulisan Anda.</p>
-                </div>
-              </div>
-              
-              <div class="flex items-start space-x-4">
-                <div class="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
-                <div>
-                  <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Sentiment Analysis</h4>
-                  <p class="text-gray-600 dark:text-gray-400">Mengidentifikasi emosi dan sentimen dari berbagai aspek tulisan Anda.</p>
-                </div>
-              </div>
-              
-              <div class="flex items-start space-x-4">
-                <div class="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
-                <div>
-                  <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Personalized Recommendations</h4>
-                  <p class="text-gray-600 dark:text-gray-400">Memberikan rekomendasi musik dan aktivitas yang disesuaikan dengan profile mood Anda.</p>
-                </div>
-              </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <!-- Teknologi Info -->
+      <div class="animate-fade-in-up">
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Bagaimana Sistem Kami Bekerja?</h3>
+        
+        <div class="space-y-6">
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+            <div>
+              <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Analisis Teks</h4>
+              <p class="text-gray-600 dark:text-gray-400">Memproses input teks untuk mengidentifikasi pola dan kata kunci emosional.</p>
             </div>
           </div>
-
-          <!-- Visual representation -->
-          <div class="animate-fade-in-up" style="animation-delay: 0.2s;">
-            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-blue-900 p-8 rounded-2xl">
-              <div class="text-center">
-                <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
-                  <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                  </svg>
-                </div>
-                <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-4">AI-Powered Analysis</h4>
-                <p class="text-gray-600 dark:text-gray-400 mb-6">Sistem kami dapat mengidentifikasi lebih dari 20 jenis emosi yang berbeda dengan akurasi tinggi.</p>
-                
-                <!-- Progress bars untuk menunjukkan akurasi -->
-                <div class="space-y-3">
-                  <div>
-                    <div class="flex justify-between text-sm mb-1">
-                      <span class="text-gray-700 dark:text-gray-300">Akurasi Analisis</span>
-                      <span class="text-blue-600 dark:text-blue-400 font-semibold">95%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style="width: 95%"></div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div class="flex justify-between text-sm mb-1">
-                      <span class="text-gray-700 dark:text-gray-300">Kecepatan Respon</span>
-                      <span class="text-green-600 dark:text-green-400 font-semibold">< 2 detik</span>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full" style="width: 98%"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-      <div class="max-w-4xl mx-auto text-center px-6 md:px-16">
-        <div class="animate-fade-in-up">
-          <h2 class="text-4xl font-bold mb-6">
-            Mulai Perjalanan Anda Menuju Kesehatan Mental yang Lebih Baik
-          </h2>
-          <p class="text-xl text-blue-100 mb-10">
-            Bergabunglah dengan MoodMate dan rasakan perbedaannya dalam memahami diri Anda sendiri
-          </p>
           
-          <a href="#/login" class="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 font-bold rounded-xl shadow-lg btn-transition transform hover:scale-105">
-            <span>Mulai Sekarang</span>
-            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-            </svg>
-          </a>
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+            <div>
+              <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Model Machine Learning</h4>
+              <p class="text-gray-600 dark:text-gray-400">Menggunakan algoritma untuk mengenali pola emosi dari data historis.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+            <div>
+              <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Rekomendasi Personal</h4>
+              <p class="text-gray-600 dark:text-gray-400">Menyesuaikan saran berdasarkan preferensi dan riwayat pengguna.</p>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+
+      <!-- Visual representation -->
+      <div class="animate-fade-in-up" style="animation-delay: 0.2s;">
+        <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-blue-900 p-8 rounded-2xl">
+          <div class="text-center">
+            <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+              </svg>
+            </div>
+            <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Pendekatan Berbasis Data</h4>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">Sistem kami terus belajar dan berkembang dari interaksi pengguna untuk memberikan pengalaman yang lebih baik.</p>
+            
+            <!-- Fitur utama -->
+            <div class="space-y-4">
+              <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-700 dark:text-gray-300">Pemrosesan teks real-time</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-700 dark:text-gray-300">Pembelajaran dari interaksi</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-700 dark:text-gray-300">Sistem yang terus berkembang</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+  <div class="max-w-4xl mx-auto text-center px-6 md:px-16">
+    <div class="animate-fade-in-up">
+      <h2 class="text-4xl font-bold mb-6">
+        Mulai Eksplorasi Kesehatan Emosional Anda
+      </h2>
+      <p class="text-xl text-blue-100 mb-10">
+        Temukan wawasan baru tentang pola emosi Anda dengan MoodMate
+      </p>
+      
+      <a href="#/login" class="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 font-bold rounded-xl shadow-lg btn-transition transform hover:scale-105">
+        <span>Mulai Sekarang</span>
+        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
   `;
 }
