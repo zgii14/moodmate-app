@@ -22,7 +22,7 @@ export default async function HomeView() {
           <!-- Badge -->
           <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm font-semibold mb-6 card-responsive">
             <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 loading-spinner"></span>
-            Mood Analysis AI
+            Mood Analysis
           </div>
           
           <h1 class="text-5xl md:text-6xl font-extrabold leading-tight text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text mb-4">
@@ -42,7 +42,7 @@ export default async function HomeView() {
               <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full border-2 border-white dark:border-gray-800"></div>
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400 italic">
-              🔍 Kenali emosimu, atur harimu dengan lebih baik bersama <strong class="text-blue-600 dark:text-blue-400">MoodMate</strong>.
+              Kenali emosimu, atur harimu dengan lebih baik bersama <strong class="text-blue-600 dark:text-blue-400">MoodMate</strong>.
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export default async function HomeView() {
             Fitur <span class="text-gradient">Unggulan</span>
           </h2>
           <p class="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Teknologi AI canggih untuk memahami dan menganalisis suasana hati Anda
+            Analisis mood cerdas dengan teknologi Machine Learning
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export default async function HomeView() {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Analisis Mood AI</h3>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Analisis Mood</h3>
             <p class="text-gray-600 dark:text-gray-400">Algoritma machine learning untuk menganalisis emosi dari teks yang Anda tulis</p>
           </div>
 
@@ -173,8 +173,8 @@ export default async function HomeView() {
             <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <span class="text-2xl font-bold">2</span>
             </div>
-            <h3 class="text-xl font-semibold mb-2">Analisis AI</h3>
-            <p class="text-blue-200">AI menganalisis mood dan emosi dari tulisan Anda</p>
+            <h3 class="text-xl font-semibold mb-2">Analisis Mood</h3>
+            <p class="text-blue-200">Menganalisis pola emosi secara otomatis dari tulisan Anda</p>
           </div>
           
           <div class="text-center animate-fade-in-up" style="animation-delay: 0.3s;">
@@ -207,7 +207,7 @@ export default async function HomeView() {
                 </div>
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Cepat & Akurat</h3>
-                  <p class="text-gray-600 dark:text-gray-400">Analisis mood dalam hitungan detik dengan teknologi AI terdepan</p>
+                  <p class="text-gray-600 dark:text-gray-400">Analisis mood dalam hitungan detik dengan teknologi terdepan</p>
                 </div>
               </div>
               
