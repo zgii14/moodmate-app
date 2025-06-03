@@ -1,233 +1,342 @@
 import ApiService from "../../data/api.js";
+import { db, serverTimestamp } from "../../utils/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { renderNavbar } from "../../components/Navbar.js";
+import bcrypt from "bcryptjs";
+
+const generateCaptcha = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let result = "";
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+export function initPasswordToggle() {
+  const togglePassword = document.getElementById("toggle-password-login");
+  const passwordInput = document.getElementById("login-password");
+  const iconLogin = document.getElementById("icon-password-login");
+
+  if (togglePassword && passwordInput && iconLogin) {
+    togglePassword.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        iconLogin.classList.remove("fa-eye");
+        iconLogin.classList.add("fa-eye-slash");
+      } else {
+        passwordInput.type = "password";
+        iconLogin.classList.remove("fa-eye-slash");
+        iconLogin.classList.add("fa-eye");
+      }
+      passwordInput.focus();
+    });
+  }
+}
+
+export function initForgotPasswordModal() {
+  const modal = document.getElementById("forgot-password-modal");
+  const forgotLink = document.getElementById("forgot-password-link");
+  const closeBtn = document.getElementById("close-modal");
+
+  if (forgotLink && modal && closeBtn) {
+    forgotLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      modal.classList.remove("hidden");
+    });
+
+    closeBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+    });
+  }
+}
 
 export default function LoginPresenter() {
   setTimeout(() => {
-    const form = document.getElementById("form-login");
-    const passwordInput = document.getElementById("login-password");
-    const toggleButton = document.getElementById("toggle-password");
-    const eyeOpen = document.getElementById("eye-open");
-    const eyeClosed = document.getElementById("eye-closed");
+    const loginForm = document.getElementById("form-login");
+    const resetForm = document.getElementById("reset-password-form");
 
-    if (toggleButton && passwordInput && eyeOpen && eyeClosed) {
-      toggleButton.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const isPassword = passwordInput.type === "password";
-
-        if (isPassword) {
-          passwordInput.type = "text";
-          eyeOpen.classList.add("hidden");
-          eyeClosed.classList.remove("hidden");
-        } else {
-          passwordInput.type = "password";
-          eyeOpen.classList.remove("hidden");
-          eyeClosed.classList.add("hidden");
-        }
-
-        passwordInput.focus();
-      });
-    }
-
-    if (form) {
-      form.addEventListener("submit", async (e) => {
+    if (loginForm) {
+      loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const email = document.getElementById("login-email").value.trim();
         const password = document.getElementById("login-password").value;
-        const submitButton = form.querySelector('button[type="submit"]');
-        const rememberMe =
-          document.getElementById("remember-me")?.checked || false;
+        const submitButton = loginForm.querySelector('button[type="submit"]');
 
         if (!email || !password) {
-          alert("Email dan kata sandi harus diisi!");
+          showNotification("Email dan password harus diisi!", "warning");
           return;
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          alert("Format email tidak valid!");
-          return;
-        }
-
-        const originalText = submitButton.textContent;
         submitButton.disabled = true;
         submitButton.textContent = "Memproses...";
 
         try {
-          console.log("Starting login process...");
-
-          const response = await ApiService.login({ email, password });
-          console.log("Login API response:", response);
-
-          if (response.error === true) {
-            alert(
-              response.message || "Login gagal. Email atau kata sandi salah."
-            );
-            return;
-          }
-
-          const savedToken = localStorage.getItem("accessToken");
-          const savedRefreshToken = localStorage.getItem("refreshToken");
-          console.log("Access token saved:", !!savedToken);
-          console.log("Refresh token saved:", !!savedRefreshToken);
-
-          if (!savedToken) {
-            alert("Login gagal. Token tidak ditemukan. Silakan coba lagi.");
-            return;
-          }
-
-          if (savedToken.length < 10) {
-            alert("Login gagal. Token tidak valid. Silakan coba lagi.");
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            return;
-          }
-
-          console.log("Token validation passed");
-
-          let userData = null;
-          try {
-            console.log("Fetching user profile...");
-            const profileResponse = await ApiService.getUserProfile();
-            console.log("Profile response:", profileResponse);
-
-            if (!profileResponse.error && profileResponse.data) {
-              if (profileResponse.data.user) {
-                userData = profileResponse.data.user;
-              } else if (profileResponse.user) {
-                userData = profileResponse.user;
-              } else {
-                userData = profileResponse.data;
-              }
-              console.log("Profile data extracted:", userData);
-            }
-          } catch (profileError) {
-            console.warn(
-              "Profile fetch failed, continuing with basic data:",
-              profileError
+          showNotification("Memeriksa koneksi server...", "info");
+          const isServerAvailable = await checkServerAvailability();
+          if (!isServerAvailable) {
+            throw new Error(
+              "Server tidak tersedia. Pastikan server berjalan di localhost:9000",
             );
           }
 
-          if (!userData || !userData.email) {
-            console.log("Creating fallback user data");
-            userData = {
-              email: email,
-              name:
-                response.data?.user?.name ||
-                response.user?.name ||
-                email.split("@")[0],
-              joined:
-                response.data?.user?.createdAt ||
-                response.user?.createdAt ||
-                new Date().toISOString(),
-            };
+          showNotification("Memverifikasi data pengguna...", "info");
+          const userRef = doc(db, "users", email);
+          const userDoc = await getDoc(userRef);
+
+          if (!userDoc.exists()) {
+            throw new Error("Email tidak terdaftar!");
           }
 
-          if (!userData.joined) {
-            userData.joined = new Date().toISOString();
+          showNotification("Memverifikasi password...", "info");
+          const userData = userDoc.data();
+          const isPasswordValid = await bcrypt.compare(
+            password,
+            userData.password,
+          );
+
+          if (!isPasswordValid) {
+            throw new Error("Password salah!");
           }
 
-          console.log("Final user data:", userData);
+          showNotification("Membuat sesi login...", "info");
+          const sessionId = `firestore_session_${Date.now()}_${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
 
-          localStorage.setItem("moodmate-user", JSON.stringify(userData));
+          await setDoc(
+            userRef,
+            {
+              lastLogin: serverTimestamp(),
+              sessionId: sessionId,
+            },
+            { merge: true },
+          );
+
+          const userDataForStorage = {
+            email: userData.email,
+            name: userData.name,
+            joined:
+              userData.createdAt?.toDate()?.toISOString() ||
+              new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+            sessionId: sessionId,
+            authSource: "firestore",
+          };
+
+          localStorage.setItem(
+            "moodmate-user",
+            JSON.stringify(userDataForStorage),
+          );
           localStorage.setItem("moodmate-logged-in", "true");
-          localStorage.setItem("moodmate-current-user", email);
-          localStorage.setItem("moodmate-login-time", new Date().toISOString());
+          localStorage.setItem("moodmate-current-user", userData.email);
+          localStorage.setItem("moodmate-session-id", sessionId);
 
-          if (rememberMe) {
-            localStorage.setItem("moodmate-remember-me", "true");
-            const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + 30);
-            localStorage.setItem(
-              "moodmate-session-expiry",
-              expiryDate.toISOString()
-            );
-          } else {
-            localStorage.setItem("moodmate-remember-me", "false");
-            const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + 1);
-            localStorage.setItem(
-              "moodmate-session-expiry",
-              expiryDate.toISOString()
-            );
-          }
+          window.dispatchEvent(
+            new CustomEvent("userLoggedIn", { detail: userDataForStorage }),
+          );
+          renderNavbar();
+          showNotification("Login berhasil!", "success");
 
-          localStorage.removeItem("temp-user-data");
-
-          console.log("Login successful, redirecting to dashboard...");
-
-          alert("Login berhasil! Mengarahkan ke dashboard...");
           setTimeout(() => {
-            location.hash = "/dashboard";
-          }, 500);
+            window.location.hash = "/dashboard";
+          }, 1500);
         } catch (error) {
-          console.error("Login error:", error);
-
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-
-          if (error.name === "TypeError" && error.message.includes("fetch")) {
-            alert(
-              "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
-            );
-          } else if (error.message && error.message.includes("401")) {
-            alert("Email atau kata sandi salah.");
-          } else if (error.message === "Authentication failed") {
-            alert("Sesi Anda telah berakhir. Silakan login kembali.");
-          } else {
-            alert("Terjadi kesalahan saat login. Silakan coba lagi.");
-          }
+          handleLoginError(error);
         } finally {
           submitButton.disabled = false;
-          submitButton.textContent = originalText;
+          submitButton.textContent = "Masuk";
         }
       });
     }
 
-    checkAutoLogin();
+    if (resetForm) {
+      const captchaElement = document.getElementById("captcha-text");
+      if (
+        captchaElement &&
+        (!captchaElement.textContent ||
+          captchaElement.textContent.trim() === "")
+      ) {
+        captchaElement.textContent = generateCaptcha();
+      }
+
+      document
+        .getElementById("refresh-captcha")
+        ?.addEventListener("click", () => {
+          document.getElementById("captcha-text").textContent =
+            generateCaptcha();
+          document.getElementById("captcha-input").value = "";
+        });
+
+      resetForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = document.getElementById("reset-email").value.trim();
+        const newPassword = document.getElementById("new-password").value;
+        const confirmPassword =
+          document.getElementById("confirm-password").value;
+        const captchaInput = document.getElementById("captcha-input").value;
+        const captchaText = document.getElementById("captcha-text").textContent;
+        const submitButton = resetForm.querySelector('button[type="submit"]');
+
+        if (!email) {
+          showNotification("Email harus diisi!", "warning");
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          showNotification("Konfirmasi password tidak cocok!", "error");
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          showNotification("Password minimal 8 karakter!", "error");
+          return;
+        }
+
+        if (captchaInput.trim() !== captchaText.trim()) {
+          showNotification("CAPTCHA tidak sesuai!", "error");
+          document.getElementById("captcha-text").textContent =
+            generateCaptcha();
+          document.getElementById("captcha-input").value = "";
+          return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = "Memproses...";
+
+        try {
+          showNotification("Memverifikasi email...", "info");
+          const userRef = doc(db, "users", email);
+          const userDoc = await getDoc(userRef);
+
+          if (!userDoc.exists()) {
+            throw new Error("Email tidak terdaftar!");
+          }
+
+          showNotification("Mengenkripsi password baru...", "info");
+          const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+          showNotification("Menyimpan password baru...", "info");
+          await setDoc(
+            userRef,
+            {
+              password: hashedPassword,
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+          );
+
+          showNotification("Password berhasil direset!", "success");
+          document
+            .getElementById("forgot-password-modal")
+            .classList.add("hidden");
+          resetForm.reset();
+          document.getElementById("captcha-text").textContent =
+            generateCaptcha();
+        } catch (error) {
+          showNotification(`Gagal reset password: ${error.message}`, "error");
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "Simpan";
+        }
+      });
+    }
   }, 100);
 }
 
-async function checkAutoLogin() {
+function handleLoginError(error) {
+  console.error("Login Error:", error);
+
+  const errorMessages = {
+    "Server tidak tersedia": " Server tidak berjalan!",
+    "tidak terdaftar": " Email tidak terdaftar di sistem!",
+    "Password salah": " Password yang Anda masukkan salah!",
+    "permission-denied": " Akses ditolak. Periksa aturan Firestore.",
+    unavailable: " Koneksi database bermasalah. Coba lagi nanti.",
+  };
+
+  const message = Object.entries(errorMessages).find(
+    ([key]) => error.message.includes(key) || error.code === key,
+  );
+
+  showNotification(
+    message?.[1] || ` ${error.message || "Terjadi kesalahan saat login"}`,
+    "error",
+  );
+}
+
+async function checkServerAvailability() {
   try {
-    const isLoggedIn = localStorage.getItem("moodmate-logged-in");
-    const sessionExpiry = localStorage.getItem("moodmate-session-expiry");
-    const rememberMe = localStorage.getItem("moodmate-remember-me");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    if (isLoggedIn === "true" && sessionExpiry) {
-      const expiryDate = new Date(sessionExpiry);
-      const now = new Date();
+    const response = await fetch("http://localhost:9000/api/health", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+    });
 
-      if (now < expiryDate) {
-        const authStatus = await ApiService.checkAuth();
+    clearTimeout(timeoutId);
 
-        if (authStatus) {
-          console.log("Auto-login successful");
-          setTimeout(() => {
-            location.hash = "/dashboard";
-          }, 1000);
-          return;
-        }
-      }
-    }
+    if (!response.ok)
+      throw new Error(`Server merespon dengan status ${response.status}`);
 
-    if (rememberMe !== "true") {
-      clearSessionData();
-    }
+    const data = await response.json();
+    if (data.status !== "OK")
+      throw new Error("Server tidak dalam kondisi sehat");
+
+    return true;
   } catch (error) {
-    console.error("Auto-login check failed:", error);
-    clearSessionData();
+    console.error(
+      error.name === "AbortError"
+        ? " Server check timeout (5 detik)"
+        : ` Server check failed: ${error.message}`,
+    );
+    return false;
   }
 }
 
-function clearSessionData() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("moodmate-user");
-  localStorage.removeItem("moodmate-logged-in");
-  localStorage.removeItem("moodmate-current-user");
-  localStorage.removeItem("moodmate-login-time");
-  localStorage.removeItem("moodmate-session-expiry");
-  localStorage.removeItem("moodmate-remember-me");
+function showNotification(message, type = "info") {
+  const existingNotifications = document.querySelectorAll(
+    ".moodmate-notification",
+  );
+  existingNotifications.forEach((notification) => notification.remove());
+
+  const iconSVG = {
+    success: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+    error: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+    warning: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`,
+    info: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+  };
+
+  const colorClasses = {
+    success: "bg-green-500 border-green-600 text-white",
+    error: "bg-red-500 border-red-600 text-white",
+    warning: "bg-yellow-500 border-yellow-600 text-white",
+    info: "bg-blue-500 border-blue-600 text-white",
+  };
+
+  const notification = document.createElement("div");
+  notification.className = `moodmate-notification fixed top-4 right-4 p-4 rounded-lg shadow-lg border z-50 transition-all duration-500 transform translate-x-full opacity-0 max-w-sm flex items-start ${colorClasses[type]}`;
+  notification.innerHTML = `${iconSVG[type]}<div class="text-sm font-medium">${message}</div>`;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.classList.replace("translate-x-full", "translate-x-0");
+    notification.classList.replace("opacity-0", "opacity-100");
+  }, 100);
+
+  const hideNotification = () => {
+    notification.classList.replace("translate-x-0", "translate-x-full");
+    notification.classList.replace("opacity-100", "opacity-0");
+    setTimeout(() => notification.remove(), 500);
+  };
+
+  setTimeout(hideNotification, type === "error" ? 5000 : 3000);
+  notification.addEventListener("click", hideNotification);
 }
