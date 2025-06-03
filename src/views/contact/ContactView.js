@@ -30,74 +30,82 @@ export default async function ContactView() {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           ${[
             {
-              name: 'Muhammad Rozagi',
-              role: 'ML Engineer',
-              email: 'rozagi@gmail.com',
-              instagram: 'zagii',
-              linkedin: 'muhammad rozagi',
-              img: 'https://randomuser.me/api/portraits/women/44.jpg',
-              gradient: 'from-blue-500 to-indigo-500'
+              name: "Muhammad Rozagi",
+              role: "ML Engineer",
+              email: "rozagi@gmail.com",
+              instagram: "zagii",
+              linkedin: "muhammad rozagi",
+              img: "https://randomuser.me/api/portraits/women/44.jpg",
+              gradient: "from-blue-500 to-indigo-500",
             },
             {
-              name: 'Ulfa Stevi Juliana',
-              role: 'ML Engineer',
-              email: 'ulfa@gmail.com',
-              instagram: 'ulfaa',
-              linkedin: 'ulfa stevi',
-              img: 'https://randomuser.me/api/portraits/men/45.jpg',
-              gradient: 'from-purple-500 to-pink-500'
+              name: "Ulfa Stevi Juliana",
+              role: "ML Engineer",
+              email: "ulfa@gmail.com",
+              instagram: "ulfaa",
+              linkedin: "ulfa stevi",
+              img: "https://randomuser.me/api/portraits/men/45.jpg",
+              gradient: "from-purple-500 to-pink-500",
             },
             {
-              name: 'Jevon Ordrick',
-              role: 'ML Engineer',
-              email: 'jevon@gmail.com',
-              instagram: 'jevonn',
-              linkedin: 'jevon ordrick',
-              img: 'https://randomuser.me/api/portraits/women/47.jpg',
-              gradient: 'from-green-500 to-emerald-500'
+              name: "Jevon Ordrick",
+              role: "ML Engineer",
+              email: "jevon@gmail.com",
+              instagram: "jevonn",
+              linkedin: "jevon ordrick",
+              img: "https://randomuser.me/api/portraits/women/47.jpg",
+              gradient: "from-green-500 to-emerald-500",
             },
             {
-              name: 'Merly Yuni Purnama',
-              role: 'Backend Developer',
-              email: 'merlyyunipurnama@google.com',
-              instagram: 'merlyy',
-              linkedin: 'merly yuni purnama',
-              img: 'https://randomuser.me/api/portraits/men/48.jpg',
-              gradient: 'from-orange-500 to-red-500'
+              name: "Merly Yuni Purnama",
+              role: "Backend Developer",
+              email: "merlyyunipurnama@google.com",
+              instagram: "merlyy",
+              linkedin: "merly yuni purnama",
+              img: "https://randomuser.me/api/portraits/men/48.jpg",
+              gradient: "from-orange-500 to-red-500",
             },
             {
-              name: 'Dian Ardiyanti Saputri',
-              role: 'Frontend Developer',
-              email: 'dianardiyantii09@google.com',
-              instagram: 'dianardiyantii',
-              linkedin: 'dian ardiyanti saputri',
-              img: 'https://randomuser.me/api/portraits/women/49.jpg',
-              gradient: 'from-pink-500 to-rose-500'
+              name: "Dian Ardiyanti Saputri",
+              role: "Frontend Developer",
+              email: "dianardiyantii09@google.com",
+              instagram: "dianardiyantii",
+              linkedin: "dian ardiyanti saputri",
+              img: "https://randomuser.me/api/portraits/women/49.jpg",
+              gradient: "from-pink-500 to-rose-500",
             },
             {
-              name: 'Reisya Septriana',
-              role: 'UI & UX Designer',
-              email: 'reisya@gmail.com',
-              instagram: 'dhani.reisyaseptriana',
-              linkedin: 'reisya septriana',
-              img: 'https://randomuser.me/api/portraits/men/50.jpg',
-              gradient: 'from-teal-500 to-cyan-500'
+              name: "Reisya Septriana",
+              role: "UI & UX Designer",
+              email: "reisya@gmail.com",
+              instagram: "dhani.reisyaseptriana",
+              linkedin: "reisya septriana",
+              img: "https://randomuser.me/api/portraits/men/50.jpg",
+              gradient: "from-teal-500 to-cyan-500",
             },
-          ].map((member, index) => `
+          ]
+            .map(
+              (member, index) => `
             <div class="card-responsive bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden p-8 text-center
                         transform transition-all duration-500 hover:scale-105 hover:shadow-2xl
                         animate-fade-in-up border border-gray-100 dark:border-gray-700" 
                  style="animation-delay: ${index * 0.1}s;">
               <div class="relative mb-6">
-                <div class="absolute inset-0 bg-gradient-to-r ${member.gradient} rounded-full blur-lg opacity-30 scale-110"></div>
+                <div class="absolute inset-0 bg-gradient-to-r ${
+                  member.gradient
+                } rounded-full blur-lg opacity-30 scale-110"></div>
                 <img src="${member.img}" 
                      alt="${member.name}" 
                      class="relative w-24 h-24 mx-auto rounded-full border-4 border-white dark:border-gray-700 object-cover shadow-lg" 
                      loading="lazy" />
               </div>
               
-              <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">${member.name}</h3>
-              <p class="text-sm font-semibold text-transparent bg-gradient-to-r ${member.gradient} bg-clip-text mb-3">${member.role}</p>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">${
+                member.name
+              }</h3>
+              <p class="text-sm font-semibold text-transparent bg-gradient-to-r ${
+                member.gradient
+              } bg-clip-text mb-3">${member.role}</p>
               <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 flex items-center justify-center">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -122,7 +130,9 @@ export default async function ContactView() {
                 </a>
               </div>
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
         </div>
       </div>
     </section>
