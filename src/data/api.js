@@ -1,108 +1,78 @@
 import CONFIG from "../config";
-import { getAccessToken, setAccessToken } from "../utils/auth";
 
 const API = {
   REGISTER: `${CONFIG.BASE_URL}/auth/register`,
   LOGIN: `${CONFIG.BASE_URL}/auth/login`,
-  REFRESH: `${CONFIG.BASE_URL}/auth/refresh`,
   GET_PROFILE: `${CONFIG.BASE_URL}/auth/profile`,
+  UPDATE_PROFILE: `${CONFIG.BASE_URL}/auth/profile`,
+  CHANGE_PASSWORD: `${CONFIG.BASE_URL}/auth/change-password`,
   LOGOUT: `${CONFIG.BASE_URL}/auth/logout`,
 
+  CREATE_JOURNAL: `${CONFIG.BASE_URL}/journal`,
+  GET_JOURNALS: `${CONFIG.BASE_URL}/journal`,
+  GET_JOURNAL_BY_ID: (id) => `${CONFIG.BASE_URL}/journal/${id}`,
+  UPDATE_JOURNAL: (id) => `${CONFIG.BASE_URL}/journal/${id}`,
+  DELETE_JOURNAL: (id) => `${CONFIG.BASE_URL}/journal/${id}`,
+
   HEALTH_CHECK: `${CONFIG.BASE_URL}/health`,
+  PREDICT_MOOD: `${CONFIG.BASE_URL}/predict-mood`,
 };
 
 class ApiService {
-  static getAuthHeaders() {
-    const token = getAccessToken();
-    return {
+  static getBasicHeaders() {
+    const headers = {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
     };
+
+    const sessionId = this.getSessionId();
+    if (sessionId) {
+      headers["X-Session-ID"] = sessionId;
+    }
+
+    return headers;
   }
 
-  static async makeAuthenticatedRequest(url, options = {}) {
-    let response = await fetch(url, {
+  static async makeRequest(url, options = {}) {
+    const response = await fetch(url, {
       ...options,
       headers: {
-        ...this.getAuthHeaders(),
+        ...this.getBasicHeaders(),
         ...options.headers,
       },
     });
 
-    if (response.status === 401) {
-      const refreshSuccess = await this.refreshToken();
-
-      if (refreshSuccess) {
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            ...this.getAuthHeaders(),
-            ...options.headers,
-          },
-        });
-      } else {
-        this.handleAuthFailure();
-        throw new Error("Authentication failed");
-      }
-    }
-
     return response;
   }
 
-  static async refreshToken() {
-    try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) {
-        return false;
-      }
-
-      const response = await fetch(API.REFRESH, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data.token) {
-        localStorage.setItem("accessToken", result.data.token);
-        localStorage.setItem("refreshToken", result.data.refreshToken);
-        console.log("Token refreshed successfully");
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error("Token refresh failed:", error);
-      return false;
-    }
+  static getSessionId() {
+    return localStorage.getItem("moodmate-session-id");
   }
 
-  static handleAuthFailure() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+  static setSessionId(sessionId) {
+    localStorage.setItem("moodmate-session-id", sessionId);
+  }
+
+  static removeSessionId() {
+    localStorage.removeItem("moodmate-session-id");
+  }
+
+  static setUserData(user) {
+    localStorage.setItem("moodmate-user", JSON.stringify(user));
+    localStorage.setItem("moodmate-logged-in", "true");
+    localStorage.setItem("moodmate-current-user", JSON.stringify(user));
+  }
+
+  static removeUserData() {
     localStorage.removeItem("moodmate-user");
     localStorage.removeItem("moodmate-logged-in");
     localStorage.removeItem("moodmate-current-user");
-
-    setTimeout(() => {
-      location.hash = "/login";
-    }, 1000);
+    this.removeSessionId();
   }
 
   static async register({ name, email, password }) {
     try {
-      const response = await fetch(API.REGISTER, {
+      const response = await this.makeRequest(API.REGISTER, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           name,
           email,
@@ -166,11 +136,8 @@ class ApiService {
 
   static async login({ email, password }) {
     try {
-      const response = await fetch(API.LOGIN, {
+      const response = await this.makeRequest(API.LOGIN, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email,
           password,
@@ -215,56 +182,15 @@ class ApiService {
         };
       }
 
-      let token = null;
-      let refreshToken = null;
+      console.log("Login successful");
 
-      const tokenPaths = [
-        result.data?.token,
-        result.data?.accessToken,
-        result.token,
-        result.accessToken,
-        result.data?.access_token,
-        result.access_token,
-      ];
-
-      token = tokenPaths.find(
-        (t) => t && typeof t === "string" && t.length > 0
-      );
-
-      const refreshTokenPaths = [
-        result.data?.refreshToken,
-        result.data?.refresh_token,
-        result.refreshToken,
-        result.refresh_token,
-      ];
-
-      refreshToken = refreshTokenPaths.find(
-        (t) => t && typeof t === "string" && t.length > 0
-      );
-
-      if (!token) {
-        return {
-          error: true,
-          message: "Login gagal. Token tidak ditemukan dalam response server.",
-          data: result,
-        };
+      if (result.data?.sessionId) {
+        this.setSessionId(result.data.sessionId);
       }
 
-      const tokenParts = token.split(".");
-      if (tokenParts.length !== 3) {
-        return {
-          error: true,
-          message: "Login gagal. Format token tidak valid.",
-          data: result,
-        };
+      if (result.data?.user) {
+        this.setUserData(result.data.user);
       }
-
-      localStorage.setItem("accessToken", token);
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
-
-      console.log("Tokens saved successfully");
 
       return {
         error: false,
@@ -272,8 +198,6 @@ class ApiService {
         message: result.message || "Login berhasil",
         data: result,
         user: result.data?.user || result.user,
-        token: token,
-        refreshToken: refreshToken,
       };
     } catch (error) {
       console.error("Login Network Error:", error);
@@ -294,16 +218,174 @@ class ApiService {
 
   static async getUserProfile() {
     try {
-      const response = await this.makeAuthenticatedRequest(API.GET_PROFILE, {
+      const response = await this.makeRequest(API.GET_PROFILE, {
         method: "GET",
       });
 
-      return response.json();
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal mengambil profil user",
+        };
+      }
+
+      return result;
     } catch (error) {
       console.error("Get User Profile Error:", error);
       return {
         error: true,
         message: "Terjadi kesalahan saat mengambil profil user",
+      };
+    }
+  }
+
+  static async updateProfile({ name }) {
+    try {
+      const response = await this.makeRequest(API.UPDATE_PROFILE, {
+        method: "PUT",
+        body: JSON.stringify({
+          name,
+        }),
+      });
+
+      console.log("Update Profile Response Status:", response.status);
+      const result = await response.json();
+      console.log("Update Profile Response Data:", result);
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal memperbarui profil",
+          data: result,
+        };
+      }
+
+      if (result.data?.user) {
+        this.setUserData(result.data.user);
+      }
+
+      return {
+        error: false,
+        success: true,
+        message: result.message || "Profil berhasil diperbarui",
+        data: result,
+      };
+    } catch (error) {
+      console.error("Update Profile Network Error:", error);
+
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        return {
+          error: true,
+          message: "Tidak dapat terhubung ke server. Periksa koneksi internet.",
+        };
+      }
+
+      return {
+        error: true,
+        message: "Terjadi kesalahan jaringan saat memperbarui profil",
+      };
+    }
+  }
+
+  static async changePassword({ currentPassword, newPassword }) {
+    try {
+      const response = await this.makeRequest(API.CHANGE_PASSWORD, {
+        method: "PUT",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      console.log("Change Password Response Status:", response.status);
+      const result = await response.json();
+      console.log("Change Password Response Data:", result);
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal mengubah password",
+          data: result,
+        };
+      }
+
+      return {
+        error: false,
+        success: true,
+        message: result.message || "Password berhasil diubah",
+        data: result,
+      };
+    } catch (error) {
+      console.error("Change Password Network Error:", error);
+
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        return {
+          error: true,
+          message: "Tidak dapat terhubung ke server. Periksa koneksi internet.",
+        };
+      }
+
+      return {
+        error: true,
+        message: "Terjadi kesalahan jaringan saat mengubah password",
+      };
+    }
+  }
+
+  static async updateUserInfo({ name, currentPassword, newPassword }) {
+    try {
+      const updates = [];
+
+      if (name) {
+        const profileUpdate = await this.updateProfile({ name });
+        updates.push({
+          type: "profile",
+          result: profileUpdate,
+        });
+      }
+
+      if (currentPassword && newPassword) {
+        const passwordUpdate = await this.changePassword({
+          currentPassword,
+          newPassword,
+        });
+        updates.push({
+          type: "password",
+          result: passwordUpdate,
+        });
+      }
+
+      const hasError = updates.some((update) => update.result.error);
+
+      if (hasError) {
+        const errors = updates
+          .filter((update) => update.result.error)
+          .map((update) => `${update.type}: ${update.result.message}`)
+          .join(", ");
+
+        return {
+          error: true,
+          message: `Gagal memperbarui: ${errors}`,
+          updates,
+        };
+      }
+
+      return {
+        error: false,
+        success: true,
+        message: "Informasi berhasil diperbarui",
+        updates,
+      };
+    } catch (error) {
+      console.error("Update User Info Error:", error);
+      return {
+        error: true,
+        message: "Terjadi kesalahan saat memperbarui informasi",
       };
     }
   }
@@ -315,7 +397,7 @@ class ApiService {
     detailAktivitas = {},
   }) {
     try {
-      const response = await this.makeAuthenticatedRequest(API.CREATE_JOURNAL, {
+      const response = await this.makeRequest(API.CREATE_JOURNAL, {
         method: "POST",
         body: JSON.stringify({
           catatan,
@@ -325,7 +407,17 @@ class ApiService {
         }),
       });
 
-      return response.json();
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal membuat journal entry",
+        };
+      }
+
+      return result;
     } catch (error) {
       console.error("Create Journal Entry Error:", error);
       return {
@@ -335,22 +427,137 @@ class ApiService {
     }
   }
 
-  static async predictMood(text) {
+  static async getJournalEntries() {
     try {
-      const response = await this.makeAuthenticatedRequest(
-        `${CONFIG.BASE_URL}/predict-mood`,
-        {
-          method: "POST",
-          body: JSON.stringify({ text }),
-        }
-      );
+      const response = await this.makeRequest(API.GET_JOURNALS, {
+        method: "GET",
+      });
+
+      const result = await response.json();
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal mengambil journal entries",
+        };
       }
 
-      return await response.json();
+      return result;
+    } catch (error) {
+      console.error("Get Journal Entries Error:", error);
+      return {
+        error: true,
+        message: "Terjadi kesalahan saat mengambil journal entries",
+      };
+    }
+  }
+
+  static async getJournalById(id) {
+    try {
+      const response = await this.makeRequest(API.GET_JOURNAL_BY_ID(id), {
+        method: "GET",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal mengambil journal entry",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Get Journal By ID Error:", error);
+      return {
+        error: true,
+        message: "Terjadi kesalahan saat mengambil journal entry",
+      };
+    }
+  }
+
+  static async updateJournalEntry(
+    id,
+    { catatan, mood, aktivitas, detailAktivitas }
+  ) {
+    try {
+      const response = await this.makeRequest(API.UPDATE_JOURNAL(id), {
+        method: "PUT",
+        body: JSON.stringify({
+          catatan,
+          mood,
+          aktivitas,
+          detailAktivitas,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal mengupdate journal entry",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Update Journal Entry Error:", error);
+      return {
+        error: true,
+        message: "Terjadi kesalahan saat mengupdate journal entry",
+      };
+    }
+  }
+
+  static async deleteJournalEntry(id) {
+    try {
+      const response = await this.makeRequest(API.DELETE_JOURNAL(id), {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Gagal menghapus journal entry",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Delete Journal Entry Error:", error);
+      return {
+        error: true,
+        message: "Terjadi kesalahan saat menghapus journal entry",
+      };
+    }
+  }
+
+  static async predictMood(text) {
+    try {
+      const response = await this.makeRequest(API.PREDICT_MOOD, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Failed to analyze mood",
+        };
+      }
+
+      return result;
     } catch (error) {
       console.error("Predict Mood Error:", error);
       return {
@@ -362,11 +569,21 @@ class ApiService {
 
   static async healthCheck() {
     try {
-      const response = await fetch(API.HEALTH_CHECK, {
+      const response = await this.makeRequest(API.HEALTH_CHECK, {
         method: "GET",
       });
 
-      return response.json();
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: true,
+          status: response.status,
+          message: result.message || "Health check failed",
+        };
+      }
+
+      return result;
     } catch (error) {
       console.error("Health Check Error:", error);
       return {
@@ -378,51 +595,26 @@ class ApiService {
 
   static async logout() {
     try {
-      const refreshToken = localStorage.getItem("refreshToken");
-
-      if (refreshToken) {
-        await fetch(API.LOGOUT, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ refreshToken }),
-        });
-      }
+      await this.makeRequest(API.LOGOUT, {
+        method: "POST",
+      });
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("moodmate-user");
-      localStorage.removeItem("moodmate-logged-in");
-      localStorage.removeItem("moodmate-current-user");
-
-      import("../utils/auth").then(({ removeAccessToken }) => {
-        removeAccessToken();
-      });
+      this.removeUserData();
     }
   }
 
   static isLoggedIn() {
-    const token = getAccessToken();
-    const refreshToken = localStorage.getItem("refreshToken");
-    return !!(token || refreshToken);
+    return (
+      localStorage.getItem("moodmate-logged-in") === "true" &&
+      this.getSessionId() !== null
+    );
   }
 
-  static async checkAuth() {
-    const token = getAccessToken();
-    const refreshToken = localStorage.getItem("refreshToken");
-
-    if (!token && !refreshToken) {
-      return false;
-    }
-
-    if (!token && refreshToken) {
-      return await this.refreshToken();
-    }
-
-    return true;
+  static getCurrentUser() {
+    const userStr = localStorage.getItem("moodmate-user");
+    return userStr ? JSON.parse(userStr) : null;
   }
 }
 
