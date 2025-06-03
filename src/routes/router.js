@@ -15,7 +15,10 @@ import DashboardPresenter from "../views/dashboard/DashboardPresenter";
 import JournalPresenter from "../views/journal/JournalPresenter";
 import ContactPresenter from "../views/contact/ContactPresenter";
 import HasilPresenter from "../views/hasil/HasilPresenter";
-import RiwayatPresenter from "../views/riwayat/RiwayatPresenter"; // ✅ Tambahkan ini
+import RiwayatPresenter from "../views/riwayat/RiwayatPresenter";
+import LoginPresenter from "../views/login/LoginPresenter";
+import RegisterPresenter from "../views/register/RegisterPresenter";
+import ProfilPresenter from "../views/profil/ProfilPresenter";
 
 const routes = {
   "/": HomeView,
@@ -35,7 +38,10 @@ const presenters = {
   "/journal": JournalPresenter,
   "/contact": ContactPresenter,
   "/hasil": HasilPresenter,
-  "/riwayat": RiwayatPresenter, 
+  "/riwayat": RiwayatPresenter,
+  "/login": LoginPresenter,
+  "/register": RegisterPresenter,
+  "/profil": ProfilPresenter,
 };
 
 let isNavigating = false;
@@ -99,7 +105,7 @@ const transitionToPage = async (render, presenter, path) => {
 
       if (presenter) {
         try {
-          presenter(); 
+          presenter();
         } catch (error) {
           console.error("Error running presenter:", error);
         }
@@ -120,7 +126,7 @@ const transitionToPage = async (render, presenter, path) => {
 
     if (presenter) {
       try {
-        presenter(); 
+        presenter();
       } catch (presenterError) {
         console.error("Error running presenter:", presenterError);
       }
@@ -159,10 +165,18 @@ const navigateTo = (path) => {
   window.location.hash = path;
 };
 
+window.addEventListener("userLoggedIn", () => {
+  renderNavbar();
+});
+
+window.addEventListener("userLoggedOut", () => {
+  renderNavbar();
+});
+
 window.addEventListener("hashchange", handleNavigation);
 window.addEventListener("DOMContentLoaded", () => {
   currentPage = null;
-  router(); 
+  router();
 });
 
 const preloadPage = async (path) => {
