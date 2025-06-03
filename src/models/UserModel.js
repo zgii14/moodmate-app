@@ -89,7 +89,7 @@ export const UserModel = {
       } catch (storageError) {
         console.error(
           "Failed to save user data to localStorage:",
-          storageError
+          storageError,
         );
       }
 
@@ -187,6 +187,38 @@ export const UserModel = {
       return true;
     } catch (error) {
       console.error("Failed to set current user:", error);
+      return false;
+    }
+  },
+
+  updateUser(updateData) {
+    try {
+      if (!updateData || typeof updateData !== "object") {
+        console.error("Invalid update data:", updateData);
+        return false;
+      }
+
+      const currentUser = this.getCurrent();
+      if (!currentUser) {
+        console.error("No current user found to update");
+        return false;
+      }
+
+      const updatedUser = {
+        ...currentUser,
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem("moodmate-user", JSON.stringify(updatedUser));
+
+      console.log(
+        "User data updated successfully in localStorage:",
+        updatedUser,
+      );
+      return true;
+    } catch (error) {
+      console.error("Error updating user data:", error);
       return false;
     }
   },
@@ -314,12 +346,26 @@ export const UserModel = {
           photoData.startsWith("http")
         ) {
           localStorage.setItem("profile_photo", photoData);
+
+          const currentUser = this.getCurrent();
+          if (currentUser) {
+            currentUser.profilePhoto = photoData;
+            localStorage.setItem("moodmate-user", JSON.stringify(currentUser));
+          }
+
           console.log("Profile photo updated successfully");
         } else {
           console.error("Invalid photo data format");
         }
       } else {
         localStorage.removeItem("profile_photo");
+
+        const currentUser = this.getCurrent();
+        if (currentUser) {
+          currentUser.profilePhoto = null;
+          localStorage.setItem("moodmate-user", JSON.stringify(currentUser));
+        }
+
         console.log("Profile photo removed");
       }
     } catch (error) {
@@ -375,7 +421,6 @@ export const UserModel = {
       if (!userData.email)
         return { healthy: false, reason: "Invalid user data" };
 
-      // Optional: Test dengan API call
       const profile = await this.getProfile();
       if (!profile) return { healthy: false, reason: "Cannot fetch profile" };
 
