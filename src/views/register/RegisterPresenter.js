@@ -11,7 +11,7 @@ export default function RegisterPresenter() {
 
   function showNotification(message, type = "info") {
     const existingNotifications = document.querySelectorAll(
-      ".moodmate-notification"
+      ".moodmate-notification",
     );
     existingNotifications.forEach((notification) => {
       if (document.body.contains(notification)) {
@@ -90,23 +90,23 @@ export default function RegisterPresenter() {
         const submitButton = form.querySelector('button[type="submit"]');
 
         if (!name) {
-          showNotification("Nama tidak boleh kosong!", "warning");
+          showNotification("❌ Nama tidak boleh kosong!", "warning");
           return;
         }
 
         if (!email) {
-          showNotification("Email tidak boleh kosong!", "warning");
+          showNotification("❌ Email tidak boleh kosong!", "warning");
           return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-          showNotification("Format email tidak valid!", "warning");
+          showNotification("❌ Format email tidak valid!", "warning");
           return;
         }
 
         if (password.length < 8) {
-          showNotification("Password minimal 8 karakter!", "warning");
+          showNotification("❌ Password minimal 8 karakter!", "warning");
           return;
         }
 
@@ -119,34 +119,29 @@ export default function RegisterPresenter() {
         submitButton.textContent = "Mendaftar...";
 
         try {
-          showNotification("Memeriksa koneksi server...", "info");
           const isServerAvailable = await checkServerAvailability();
 
           if (!isServerAvailable) {
             throw new Error(
-              "Server tidak tersedia. Pastikan server berjalan di localhost:9000"
+              "Server tidak tersedia. Pastikan server berjalan di localhost:9000",
             );
           }
 
-          showNotification("Memeriksa ketersediaan email...", "info");
           const userRef = doc(db, "users", email);
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
             throw new Error(
-              "Email sudah terdaftar! Silakan gunakan email lain."
+              "Email sudah terdaftar! Silakan gunakan email lain.",
             );
           }
 
-          showNotification("Menyiapkan data keamanan...", "info");
           const hashedPassword = await hashPassword(password);
 
-          showNotification("Membuat akun pengguna...", "info");
           const registrationId = `firestore_reg_${Date.now()}_${Math.random()
             .toString(36)
             .substr(2, 9)}`;
 
-          showNotification("Menyimpan data pengguna...", "info");
           await setDoc(userRef, {
             name: name,
             email: email,
@@ -171,34 +166,34 @@ export default function RegisterPresenter() {
           console.error("Registration Error:", error);
 
           if (error.message.includes("Server tidak tersedia")) {
-            showNotification("Server tidak berjalan!", "error");
+            showNotification("❌ Server tidak berjalan!", "error");
           } else if (error.message.includes("Email sudah terdaftar")) {
             showNotification(
-              "Email sudah terdaftar! Silakan gunakan email lain atau login.",
-              "error"
+              "❌ Email sudah terdaftar! Silakan gunakan email lain atau login.",
+              "error",
             );
           } else if (error.code === "permission-denied") {
             showNotification(
-              "Akses ditolak. Periksa aturan Firestore.",
-              "error"
+              "❌ Akses ditolak. Periksa aturan Firestore.",
+              "error",
             );
           } else if (error.code === "unavailable") {
             showNotification(
-              "Koneksi database bermasalah. Coba lagi nanti.",
-              "error"
+              "❌ Koneksi database bermasalah. Coba lagi nanti.",
+              "error",
             );
           } else if (
             error.name === "TypeError" &&
             error.message.includes("fetch")
           ) {
             showNotification(
-              "Tidak dapat terhubung ke server. Pastikan server berjalan!",
-              "error"
+              "❌ Tidak dapat terhubung ke server. Pastikan server berjalan!",
+              "error",
             );
           } else {
             showNotification(
-              `${error.message || "Terjadi kesalahan saat registrasi"}`,
-              "error"
+              `❌ ${error.message || "Terjadi kesalahan saat registrasi"}`,
+              "error",
             );
           }
         } finally {
@@ -239,9 +234,9 @@ async function checkServerAvailability() {
     return true;
   } catch (error) {
     if (error.name === "AbortError") {
-      console.error("Server check timeout (5 detik)");
+      console.error("❌ Server check timeout (5 detik)");
     } else {
-      console.error("Server check failed:", error.message);
+      console.error("❌ Server check failed:", error.message);
     }
     return false;
   }
