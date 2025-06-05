@@ -36,6 +36,55 @@ export function initPasswordToggle() {
   }
 }
 
+// Fungsi untuk toggle password pada modal reset password
+export function initModalPasswordToggle() {
+  // Toggle untuk password baru
+  const toggleNewPassword = document.getElementById("toggle-new-password");
+  const newPasswordInput = document.getElementById("new-password");
+  const iconNewPassword = document.getElementById("icon-new-password");
+
+  if (toggleNewPassword && newPasswordInput && iconNewPassword) {
+    toggleNewPassword.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (newPasswordInput.type === "password") {
+        newPasswordInput.type = "text";
+        iconNewPassword.classList.remove("fa-eye");
+        iconNewPassword.classList.add("fa-eye-slash");
+      } else {
+        newPasswordInput.type = "password";
+        iconNewPassword.classList.remove("fa-eye-slash");
+        iconNewPassword.classList.add("fa-eye");
+      }
+      newPasswordInput.focus();
+    });
+  }
+
+  // Toggle untuk konfirmasi password
+  const toggleConfirmPassword = document.getElementById(
+    "toggle-confirm-password",
+  );
+  const confirmPasswordInput = document.getElementById("confirm-password");
+  const iconConfirmPassword = document.getElementById("icon-confirm-password");
+
+  if (toggleConfirmPassword && confirmPasswordInput && iconConfirmPassword) {
+    toggleConfirmPassword.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (confirmPasswordInput.type === "password") {
+        confirmPasswordInput.type = "text";
+        iconConfirmPassword.classList.remove("fa-eye");
+        iconConfirmPassword.classList.add("fa-eye-slash");
+      } else {
+        confirmPasswordInput.type = "password";
+        iconConfirmPassword.classList.remove("fa-eye-slash");
+        iconConfirmPassword.classList.add("fa-eye");
+      }
+      confirmPasswordInput.focus();
+    });
+  }
+}
+
 export function initForgotPasswordModal() {
   const modal = document.getElementById("forgot-password-modal");
   const forgotLink = document.getElementById("forgot-password-link");
@@ -45,6 +94,10 @@ export function initForgotPasswordModal() {
     forgotLink.addEventListener("click", (e) => {
       e.preventDefault();
       modal.classList.remove("hidden");
+      // Inisialisasi toggle password setelah modal terbuka
+      setTimeout(() => {
+        initModalPasswordToggle();
+      }, 50);
     });
 
     closeBtn.addEventListener("click", () => {
@@ -75,7 +128,6 @@ export default function LoginPresenter() {
         submitButton.textContent = "Memproses...";
 
         try {
-          showNotification("Memeriksa koneksi server...", "info");
           const isServerAvailable = await checkServerAvailability();
           if (!isServerAvailable) {
             throw new Error(
@@ -83,7 +135,6 @@ export default function LoginPresenter() {
             );
           }
 
-          showNotification("Memverifikasi data pengguna...", "info");
           const userRef = doc(db, "users", email);
           const userDoc = await getDoc(userRef);
 
@@ -91,7 +142,6 @@ export default function LoginPresenter() {
             throw new Error("Email tidak terdaftar!");
           }
 
-          showNotification("Memverifikasi password...", "info");
           const userData = userDoc.data();
           const isPasswordValid = await bcrypt.compare(
             password,
@@ -102,7 +152,6 @@ export default function LoginPresenter() {
             throw new Error("Password salah!");
           }
 
-          showNotification("Membuat sesi login...", "info");
           const sessionId = `firestore_session_${Date.now()}_${Math.random()
             .toString(36)
             .substr(2, 9)}`;
@@ -209,7 +258,6 @@ export default function LoginPresenter() {
         submitButton.textContent = "Memproses...";
 
         try {
-          showNotification("Memverifikasi email...", "info");
           const userRef = doc(db, "users", email);
           const userDoc = await getDoc(userRef);
 
@@ -217,10 +265,8 @@ export default function LoginPresenter() {
             throw new Error("Email tidak terdaftar!");
           }
 
-          showNotification("Mengenkripsi password baru...", "info");
           const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-          showNotification("Menyimpan password baru...", "info");
           await setDoc(
             userRef,
             {
