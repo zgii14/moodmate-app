@@ -60,17 +60,42 @@ export default function ProfilPresenter() {
 
     if (changePhotoBtn) {
       changePhotoBtn.disabled = isLoading;
-      changePhotoBtn.innerHTML = isLoading
-        ? `<svg class="w-5 h-5 inline-block mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-           </svg>Memuat...`
-        : `<svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-           </svg>Ubah Foto Profil`;
+
+      if (!changePhotoBtn.dataset.originalHtml) {
+        changePhotoBtn.dataset.originalHtml = changePhotoBtn.innerHTML;
+      }
+
+      if (isLoading) {
+        changePhotoBtn.innerHTML = `
+        <svg class="w-5 h-5 inline-block mr-2 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="whitespace-nowrap">Memuat...</span>
+      `;
+      } else {
+        changePhotoBtn.innerHTML =
+          changePhotoBtn.dataset.originalHtml ||
+          `
+        <svg class="w-5 h-5 inline-block mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span class="whitespace-nowrap">Ubah Foto Profil</span>
+      `;
+      }
+
+      changePhotoBtn.offsetHeight;
     }
 
     if (resetPhotoBtn) {
       resetPhotoBtn.disabled = isLoading;
+
+      if (isLoading) {
+        resetPhotoBtn.style.opacity = "0.5";
+        resetPhotoBtn.style.pointerEvents = "none";
+      } else {
+        resetPhotoBtn.style.opacity = "";
+        resetPhotoBtn.style.pointerEvents = "";
+      }
     }
 
     if (photoOverlay) {
@@ -87,13 +112,21 @@ export default function ProfilPresenter() {
         profileImg.src = newSrc;
         isPhotoLoaded = true;
       } else {
-        profileImg.style.transition = "opacity 0.3s ease";
         profileImg.style.opacity = "0.7";
 
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           profileImg.src = newSrc;
-          profileImg.style.opacity = "1";
-        }, 150);
+          requestAnimationFrame(() => {
+            profileImg.style.opacity = "1";
+          });
+        });
+      }
+
+      const container =
+        profileImg.closest(".profile-photo-container") ||
+        profileImg.parentElement;
+      if (container) {
+        container.offsetHeight; 
       }
     }
   };
@@ -111,6 +144,15 @@ export default function ProfilPresenter() {
     if (modal) {
       modal.classList.remove("flex");
       modal.classList.add("hidden");
+
+      setLoadingState(false);
+
+      const photoOverlay = document.getElementById("photo-overlay");
+      if (photoOverlay) {
+        photoOverlay.style.transition = "";
+      }
+
+      document.body.offsetHeight;
     }
   };
 
@@ -127,16 +169,13 @@ export default function ProfilPresenter() {
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // Fungsi helper untuk memproses tanggal dengan aman
         const parseFirestoreDate = (dateValue) => {
           if (!dateValue) return null;
 
-          // Jika sudah berupa timestamp Firestore
           if (dateValue.toDate) {
             return dateValue.toDate().toISOString();
           }
 
-          // Jika sudah berupa string ISO
           if (
             typeof dateValue === "string" &&
             !isNaN(new Date(dateValue).getTime())
@@ -144,7 +183,6 @@ export default function ProfilPresenter() {
             return new Date(dateValue).toISOString();
           }
 
-          // Coba konversi apapun itu ke Date
           try {
             const date = new Date(dateValue);
             return !isNaN(date.getTime()) ? date.toISOString() : null;
@@ -264,6 +302,12 @@ export default function ProfilPresenter() {
 
           showToast("Foto profil berhasil diperbarui!");
           updateLastModified();
+
+          setTimeout(() => {
+            const container =
+              document.querySelector(".profile-section") || document.body;
+            container.offsetHeight; 
+          }, 200);
         } catch (error) {
           console.error("Error uploading photo:", error);
           showToast("Gagal menyimpan foto profil: " + error.message, "error");
@@ -331,14 +375,26 @@ export default function ProfilPresenter() {
   const resetToDefault = async () => {
     try {
       setLoadingState(true);
+
       await removeProfilePhoto();
       UserModel.updateProfilePhoto(null);
       updateImageDisplay(null);
 
       hidePhotoModal();
 
+      const changePhotoBtn = document.getElementById("change-photo-btn");
+      if (changePhotoBtn && changePhotoBtn.dataset.originalHtml) {
+        changePhotoBtn.innerHTML = changePhotoBtn.dataset.originalHtml;
+      }
+
       showToast("Foto profil berhasil direset ke default!");
       updateLastModified();
+
+      setTimeout(() => {
+        const container =
+          document.querySelector(".profile-section") || document.body;
+        container.offsetHeight; 
+      }, 100);
     } catch (error) {
       console.error("Error resetting profile photo:", error);
       showToast("Gagal mereset foto profil. Silakan coba lagi.", "error");
@@ -614,7 +670,6 @@ export default function ProfilPresenter() {
       if (lastUpdatedElement) {
         let updateDateText = "-";
 
-        // Prioritaskan updatedAt, fallback ke createdAt
         const dateToShow = userData.updatedAt || userData.createdAt;
 
         if (dateToShow) {
@@ -648,7 +703,6 @@ export default function ProfilPresenter() {
       console.error("Error loading profile data:", error);
       showToast("Gagal memuat data profil", "error");
 
-      // Fallback ke data dari localStorage jika ada
       try {
         const localUser = JSON.parse(localStorage.getItem("moodmate-user"));
         if (localUser) {
@@ -670,7 +724,6 @@ export default function ProfilPresenter() {
   };
 
   const setupEventListeners = () => {
-    // Photo related
     const uploadInput = document.getElementById("upload-photo");
     const changePhotoBtn = document.getElementById("change-photo-btn");
     const photoOverlay = document.getElementById("photo-overlay");
@@ -679,7 +732,6 @@ export default function ProfilPresenter() {
     const cancelPhotoBtn = document.getElementById("cancel-photo-options");
     const photoModal = document.getElementById("photo-options-modal");
 
-    // Profile edit related
     const editBtn = document.getElementById("edit-profile-btn");
     const saveBtn = document.getElementById("save-profile-btn");
     const cancelBtn = document.getElementById("cancel-edit-btn");
