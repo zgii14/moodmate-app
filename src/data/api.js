@@ -17,7 +17,7 @@ const API = {
   HEALTH_CHECK: `${CONFIG.BASE_URL}/health`,
   PREDICT_MOOD: `${CONFIG.BASE_URL}/predict-mood`,
 };
-
+ 
 class ApiService {
   static getBasicHeaders() {
     const headers = {

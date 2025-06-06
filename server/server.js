@@ -99,7 +99,7 @@ const init = async () => {
 
   const server = Hapi.server({
     port: 9000,
-    host: "localhost",
+    host: "0.0.0.0",
     routes: {
       cors: {
         origin: ["*"],
@@ -791,7 +791,11 @@ const init = async () => {
 
         console.log("Received prediction request:", request.payload);
 
-        const mlResponse = await fetch("http://127.0.0.1:8000/predict", {
+      // Menjadi ini (menggunakan environment variable):
+        const mlApiUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
+        const mlResponse = await fetch(`${mlApiUrl}/predict`, { // <-- MENJADI SEPERTI INI
+         // ...
+
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: request.payload.text }),
