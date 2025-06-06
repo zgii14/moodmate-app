@@ -5,7 +5,8 @@ const ApiService = {
       console.log("Sending request to backend API...");
       const response = await fetch(`${CONFIG.BASE_URL}/predict-mood`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" ,"X-Session-Id": "sessionId" },
+        credentials: "include",
         body: JSON.stringify({ text }),
       });
 
@@ -57,7 +58,9 @@ const ApiService = {
 
   async checkServerHealth() {
     try {
-      const response = await fetch(`${CONFIG.BASE_URL}/health`, { method: "GET" });
+      const response = await fetch(`${CONFIG.BASE_URL}/health`, {
+        method: "GET",
+      });
       if (response.ok) {
         const data = await response.json();
         return data.status === "OK";
