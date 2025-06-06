@@ -1,23 +1,24 @@
+const ML_API_BASE_URL = "https://backend-moodmate.up.railway.app";
+
 const ApiService = {
   async predictMood(text) {
     try {
-      console.log("Sending request to ML API...");
-      const response = await fetch("http://127.0.0.1:8000/predict", {
+      console.log("Sending request to backend API...");
+      const response = await fetch(`${ML_API_BASE_URL}/predict`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
 
-      console.log("ML API Response status:", response.status);
+      console.log("Backend API Response status:", response.status);
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("ML API Response:", data);
+      console.log("Backend API Response:", data);
+
       let moodName = null;
 
       if (data.label_name) {
@@ -36,11 +37,7 @@ const ApiService = {
         moodName = indexToMood[data.label_index] || "neutral";
       }
 
-      if (!moodName) {
-        moodName = "neutral";
-      }
-
-      console.log("Processed mood name:", moodName);
+      if (!moodName) moodName = "neutral";
 
       return {
         mood: moodName,
@@ -48,11 +45,11 @@ const ApiService = {
         error: null,
       };
     } catch (error) {
-      console.error("ML API Error:", error);
+      console.error("Backend API Error:", error);
       return {
         mood: null,
         error: {
-          message: `Gagal menghubungi ML service: ${error.message}`,
+          message: `Gagal menghubungi service: ${error.message}`,
           type: "connection_error",
         },
       };
@@ -61,9 +58,9 @@ const ApiService = {
 
   async checkServerHealth() {
     try {
-      const response = await fetch("http://127.0.0.1:8000/health", {
+      const response = await fetch(`${ML_API_BASE_URL}/health`, {
         method: "GET",
-        timeout: 5000,
+        // no timeout param for fetch; can implement with AbortController if needed
       });
 
       if (response.ok) {
@@ -72,7 +69,7 @@ const ApiService = {
       }
       return false;
     } catch (error) {
-      console.log("ML Server is not running:", error.message);
+      console.log("Backend server is not running:", error.message);
       return false;
     }
   },
