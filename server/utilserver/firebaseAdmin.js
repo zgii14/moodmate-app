@@ -1,8 +1,7 @@
-import { fileURLToPath } from "url";
-import path from "path";
-import { readFileSync } from "fs";
-import admin from "firebase-admin";
-
+const path = require("path");
+const fs = require("fs");
+const admin = require("firebase-admin");
+const { fileURLToPath } = require("url");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

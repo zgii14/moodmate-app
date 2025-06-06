@@ -1,11 +1,10 @@
-import Hapi from "@hapi/hapi";
-import Bcrypt from "bcryptjs";
-import fetch from "node-fetch";
-import fs from "fs/promises";
-import path from "path";
-import { db, serverTimestamp } from "../utilserver/firebaseAdmin.js";
-import { getDocs, collection, setDoc, doc } from "firebase/firestore";
-// ...lanjutan kode...
+const Hapi = require("@hapi/hapi");
+const Bcrypt = require("bcryptjs");
+const fetch = require("node-fetch");
+const fs = require("fs").promises;
+const path = require("path");
+const { db, serverTimestamp } = require("../utilserver/firebaseAdmin.js");
+const { getDocs, collection, setDoc, doc } = require("firebase/firestore");
 let users = [];
 let sessions = new Map();
 let journalEntries = [];
