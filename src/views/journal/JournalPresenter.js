@@ -397,7 +397,8 @@ export default function JournalPresenter() {
 
       if (!isServerRunning) {
         showNotification(
-          "❌ Server ML tidak dapat diakses! Pastikan server ML sedang berjalan di http://127.0.0.1:8000",
+          "❌ Server ML tidak dapat diakses! Pastikan server ML sedang berjalan di " +
+            ApiService.BASE_URL, // misal simpan BASE_URL di ApiService
           "error"
         );
         setButtonLoadingState(false);
@@ -480,7 +481,7 @@ export default function JournalPresenter() {
             id: editingId,
             timestamp: new Date().toISOString(),
             date: new Date().toISOString(),
-            createdAt: editingData.createdAt || new Date().toISOString(), 
+            createdAt: editingData.createdAt || new Date().toISOString(),
           };
 
           localStorage.setItem("latest-journal", JSON.stringify(updatedEntry));
@@ -599,10 +600,10 @@ export default function JournalPresenter() {
       type === "success"
         ? "bg-green-500 text-white"
         : type === "error"
-        ? "bg-red-500 text-white"
-        : type === "warning"
-        ? "bg-yellow-500 text-white"
-        : "bg-blue-500 text-white"
+          ? "bg-red-500 text-white"
+          : type === "warning"
+            ? "bg-yellow-500 text-white"
+            : "bg-blue-500 text-white"
     }`;
     notification.textContent = message;
 

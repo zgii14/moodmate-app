@@ -1,4 +1,4 @@
-const ML_API_BASE_URL = "https://backend-moodmate.up.railway.app";
+const ML_API_BASE_URL = "https://backend-moodmate.up.railway.app/api";
 
 const ApiService = {
   async predictMood(text) {
@@ -58,18 +58,14 @@ const ApiService = {
 
   async checkServerHealth() {
     try {
-      const response = await fetch(`${ML_API_BASE_URL}/health`, {
-        method: "GET",
-        // no timeout param for fetch; can implement with AbortController if needed
-      });
-
+      const response = await fetch(`${BASE_URL}/health`, { method: "GET" });
       if (response.ok) {
         const data = await response.json();
         return data.status === "OK";
       }
       return false;
     } catch (error) {
-      console.log("Backend server is not running:", error.message);
+      console.log("ML Server is not running:", error.message);
       return false;
     }
   },
