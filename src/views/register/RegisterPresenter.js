@@ -1,4 +1,6 @@
-import ApiService from "../../data/api.js";
+// Meng-import library yang dibutuhkan
+// ApiService tidak lagi digunakan di file ini, jadi bisa kita hapus atau biarkan.
+// import ApiService from "../../data/api.js";
 import { db, serverTimestamp } from "../../utils/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import bcrypt from "bcryptjs";
@@ -10,6 +12,7 @@ export default function RegisterPresenter() {
   }
 
   function showNotification(message, type = "info") {
+    // ... (Fungsi notifikasi Anda, tidak ada perubahan di sini)
     const existingNotifications = document.querySelectorAll(
       ".moodmate-notification",
     );
@@ -37,8 +40,7 @@ export default function RegisterPresenter() {
     const colorClasses = {
       success: "bg-green-500 border-green-600 text-white shadow-green-500/25",
       error: "bg-red-500 border-red-600 text-white shadow-red-500/25",
-      warning:
-        "bg-yellow-500 border-yellow-600 text-white shadow-yellow-500/25",
+      warning: "bg-yellow-500 border-yellow-600 text-white shadow-yellow-500/25",
       info: "bg-blue-500 border-blue-600 text-white shadow-blue-500/25",
     };
 
@@ -89,27 +91,24 @@ export default function RegisterPresenter() {
         const confirmPassword = document.getElementById("reg-confirm").value;
         const submitButton = form.querySelector('button[type="submit"]');
 
+        // ... (Validasi input Anda, tidak ada perubahan di sini)
         if (!name) {
           showNotification("❌ Nama tidak boleh kosong!", "warning");
           return;
         }
-
         if (!email) {
           showNotification("❌ Email tidak boleh kosong!", "warning");
           return;
         }
-
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
           showNotification("❌ Format email tidak valid!", "warning");
           return;
         }
-
         if (password.length < 8) {
           showNotification("❌ Password minimal 8 karakter!", "warning");
           return;
         }
-
         if (password !== confirmPassword) {
           showNotification("Periksa kembali password Anda!", "error");
           return;
@@ -119,13 +118,14 @@ export default function RegisterPresenter() {
         submitButton.textContent = "Mendaftar...";
 
         try {
-          const isServerAvailable = await checkServerAvailability();
-
-          if (!isServerAvailable) {
-            throw new Error(
-              "Server tidak tersedia. Pastikan server berjalan di localhost:9000",
-            );
-          }
+          // --- BAGIAN INI TELAH DIHAPUS ---
+          // const isServerAvailable = await checkServerAvailability();
+          // if (!isServerAvailable) {
+          //   throw new Error(
+          //     "Server tidak tersedia. Pastikan server berjalan di localhost:9000",
+          //   );
+          // }
+          // ------------------------------------
 
           const userRef = doc(db, "users", email);
           const userDoc = await getDoc(userRef);
@@ -136,6 +136,8 @@ export default function RegisterPresenter() {
             );
           }
 
+          // PERINGATAN KEAMANAN: Password tidak seharusnya di-hash di sisi client.
+          // Ini rentan terhadap serangan. Sebaiknya gunakan Firebase Authentication.
           const hashedPassword = await hashPassword(password);
 
           const registrationId = `firestore_reg_${Date.now()}_${Math.random()
@@ -165,9 +167,8 @@ export default function RegisterPresenter() {
         } catch (error) {
           console.error("Registration Error:", error);
 
-          if (error.message.includes("Server tidak tersedia")) {
-            showNotification("❌ Server tidak berjalan!", "error");
-          } else if (error.message.includes("Email sudah terdaftar")) {
+          // Logika penanganan error Anda, tidak ada perubahan di sini
+          if (error.message.includes("Email sudah terdaftar")) {
             showNotification(
               "❌ Email sudah terdaftar! Silakan gunakan email lain atau login.",
               "error",
@@ -180,14 +181,6 @@ export default function RegisterPresenter() {
           } else if (error.code === "unavailable") {
             showNotification(
               "❌ Koneksi database bermasalah. Coba lagi nanti.",
-              "error",
-            );
-          } else if (
-            error.name === "TypeError" &&
-            error.message.includes("fetch")
-          ) {
-            showNotification(
-              "❌ Tidak dapat terhubung ke server. Pastikan server berjalan!",
               "error",
             );
           } else {
@@ -205,39 +198,6 @@ export default function RegisterPresenter() {
   }, 100);
 }
 
-async function checkServerAvailability() {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch("http://localhost:9000/api/health", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Server merespon dengan status ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.status !== "OK") {
-      throw new Error("Server tidak dalam kondisi sehat");
-    }
-
-    console.log("✅ Server tersedia:", data);
-    return true;
-  } catch (error) {
-    if (error.name === "AbortError") {
-      console.error("❌ Server check timeout (5 detik)");
-    } else {
-      console.error("❌ Server check failed:", error.message);
-    }
-    return false;
-  }
-}
+// --- FUNGSI INI TELAH DIHAPUS KARENA TIDAK DIPERLUKAN LAGI ---
+// async function checkServerAvailability() { ... }
+// -----------------------------------------------------------
