@@ -85,6 +85,24 @@ const saveJournals = async () => {
     console.error("❌ Error saving journals to Firestore:", error);
   }
 };
+// Tambahkan di atas/before: const init = async () => {
+const SESSION_COLLECTION = "sessions";
+
+// Simpan session ke Firestore
+async function saveSessionToFirestore(sessionId, sessionData) {
+  await db.collection(SESSION_COLLECTION).doc(sessionId).set(sessionData);
+}
+
+// Ambil session dari Firestore
+async function getSessionFromFirestore(sessionId) {
+  const docSnap = await db.collection(SESSION_COLLECTION).doc(sessionId).get();
+  return docSnap.exists ? docSnap.data() : null;
+}
+
+// Hapus session dari Firestore
+async function deleteSessionFromFirestore(sessionId) {
+  await db.collection(SESSION_COLLECTION).doc(sessionId).delete();
+}
 const init = async () => {
   await loadData();
 
@@ -104,18 +122,17 @@ const init = async () => {
     },
   });
 
-  const validateSession = (request) => {
+  const validateSession = async (request) => {
     const sessionId = request.headers["x-session-id"];
+    if (!sessionId) return null;
+    const session = await getSessionFromFirestore(sessionId);
     console.log(
       "SessionId diterima:",
       sessionId,
-      "Ada di sessions?",
-      sessions.has(sessionId)
+      "Session ditemukan?",
+      !!session
     );
-    if (!sessionId || !sessions.has(sessionId)) {
-      return null;
-    }
-    return sessions.get(sessionId);
+    return session;
   };
 
   server.route({
@@ -180,33 +197,25 @@ const init = async () => {
     path: "/api/auth/login",
     handler: async (request, h) => {
       const { email, password } = request.payload;
-
       const user = users.find((u) => u.email === email);
       if (!user) {
         return h
-          .response({
-            success: false,
-            message: "Email atau password salah",
-          })
+          .response({ success: false, message: "Email atau password salah" })
           .code(401);
       }
-
       const isValid = await Bcrypt.compare(password, user.password);
       if (!isValid) {
         return h
-          .response({
-            success: false,
-            message: "Email atau password salah",
-          })
+          .response({ success: false, message: "Email atau password salah" })
           .code(401);
       }
-
       const sessionId = generateSessionId();
-      sessions.set(sessionId, {
+      const sessionData = {
         userId: user.id,
         email: user.email,
         createdAt: getCurrentDate(),
-      });
+      };
+      await saveSessionToFirestore(sessionId, sessionData);
 
       return h
         .response({
@@ -231,7 +240,7 @@ const init = async () => {
     path: "/api/auth/profile",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -281,7 +290,7 @@ const init = async () => {
     path: "/api/auth/profile",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -370,7 +379,7 @@ const init = async () => {
     path: "/api/auth/change-password",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -490,7 +499,7 @@ const init = async () => {
     path: "/api/journal",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -571,7 +580,7 @@ const init = async () => {
     path: "/api/journal",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -618,7 +627,7 @@ const init = async () => {
     path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -665,7 +674,7 @@ const init = async () => {
     path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -726,7 +735,7 @@ const init = async () => {
     path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -777,7 +786,7 @@ const init = async () => {
     path: "/api/predict-mood",
     handler: async (request, h) => {
       try {
-        const session = validateSession(request);
+        const session = await validateSession(request);
         if (!session) {
           return h
             .response({
@@ -829,11 +838,9 @@ const init = async () => {
     path: "/api/auth/logout",
     handler: async (request, h) => {
       const sessionId = request.headers["x-session-id"];
-
-      if (sessionId && sessions.has(sessionId)) {
-        sessions.delete(sessionId);
+      if (sessionId) {
+        await deleteSessionFromFirestore(sessionId);
       }
-
       return {
         success: true,
         message: "Logout berhasil",
