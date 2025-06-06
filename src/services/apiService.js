@@ -6,7 +6,7 @@ const ApiService = {
       console.log("Sending request to backend API...");
       const response = await fetch(`${CONFIG.BASE_URL}/predict-mood`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" ,"X-Session-Id": "sessionId" },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ text }),
       });

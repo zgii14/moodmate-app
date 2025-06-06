@@ -102,7 +102,8 @@ const init = async () => {
     host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ["*"],
+        origin: ["https://moodmate.up.railway.app"], // GANTI * -> domain frontend
+        credentials: true, // WAJIB agar cookie/session dikirim
         headers: ["Accept", "Content-Type", "If-None-Match", "X-Session-ID"],
         exposedHeaders: ["WWW-Authenticate", "Server-Authorization"],
         additionalExposedHeaders: ["Accept"],
@@ -791,10 +792,11 @@ const init = async () => {
 
         console.log("Received prediction request:", request.payload);
 
-      // Menjadi ini (menggunakan environment variable):
+        // Menjadi ini (menggunakan environment variable):
         const mlApiUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
-        const mlResponse = await fetch(`${mlApiUrl}/predict`, { // <-- MENJADI SEPERTI INI
-         // ...
+        const mlResponse = await fetch(`${mlApiUrl}/predict`, {
+          // <-- MENJADI SEPERTI INI
+          // ...
 
           method: "POST",
           headers: { "Content-Type": "application/json" },

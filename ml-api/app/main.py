@@ -89,10 +89,10 @@ async def startup_event():
 # Mengizinkan frontend untuk mengakses API ini dari domain yang berbeda
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Mengizinkan semua domain
+    allow_origins=["https://moodmate.up.railway.app"],  # Ganti * jadi domain frontend kamu
     allow_credentials=True,
-    allow_methods=["*"],  # Mengizinkan semua metode (GET, POST, dll)
-    allow_headers=["*"],  # Mengizinkan semua header
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- 7. Pydantic Model (Skema Data Input) ---
