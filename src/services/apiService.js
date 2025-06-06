@@ -1,10 +1,9 @@
-const ML_API_BASE_URL = "https://backend-moodmate.up.railway.app/api";
-
+import CONFIG from "../config";
 const ApiService = {
   async predictMood(text) {
     try {
       console.log("Sending request to backend API...");
-      const response = await fetch(`${ML_API_BASE_URL}/predict`, {
+      const response = await fetch(`${CONFIG.BASE_URL}/predic-mood`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -58,7 +57,7 @@ const ApiService = {
 
   async checkServerHealth() {
     try {
-      const response = await fetch(`${BASE_URL}/health`, { method: "GET" });
+      const response = await fetch(`${CONFIG.BASE_URL}/health`, { method: "GET" });
       if (response.ok) {
         const data = await response.json();
         return data.status === "OK";
