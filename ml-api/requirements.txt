@@ -1,8 +1,11 @@
 fastapi
-uvicorn
-tensorflow-cpu 
-tf-keras
-transformers
-pydantic
+uvicorn[standard]
 scikit-learn
 requests
+pydantic
+
+# Pinning ML stack versions to solve CUDA initialization error
+tensorflow-cpu==2.15.0
+tf-keras==2.15.0
+transformers==4.38.2
+numpy==1.26.4
