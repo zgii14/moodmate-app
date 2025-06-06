@@ -1,5 +1,6 @@
 import ApiService from "../../services/apiService";
 import FirebaseJournalService from "../../services/firebaseJournalService";
+import CONFIG from "../config";
 
 export default function JournalPresenter() {
   const editingId = localStorage.getItem("editEntryId");
@@ -398,7 +399,7 @@ export default function JournalPresenter() {
       if (!isServerRunning) {
         showNotification(
           "❌ Server ML tidak dapat diakses! Pastikan server ML sedang berjalan di " +
-            ApiService.BASE_URL, // misal simpan BASE_URL di ApiService
+            CONFIG.BASE_URL, // misal simpan BASE_URL di ApiService
           "error"
         );
         setButtonLoadingState(false);
