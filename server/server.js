@@ -16,15 +16,6 @@ const generateSessionId = () => {
   return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-const ensureDataDirectory = async () => {
-  try {
-    await fs.access(DATA_DIR);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    console.log("📁 Data directory created");
-  }
-};
-
 const loadData = async () => {
   try {
     await ensureDataDirectory(); // Opsional kalau kamu masih butuh
