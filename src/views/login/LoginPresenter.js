@@ -1,4 +1,4 @@
-import { db, serverTimestamp } from "../../utils/firebase";
+import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { renderNavbar } from "../../components/Navbar";
 import bcrypt from "bcryptjs";
@@ -11,49 +11,48 @@ function generateCaptcha() {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
-};
-
-function showNotification(message, type = "info") {
-    const existingNotifications = document.querySelectorAll(
-      ".moodmate-notification",
-    );
-    existingNotifications.forEach((notification) => notification.remove());
-
-    const iconSVG = {
-      success: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
-      error: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
-      warning: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`,
-      info: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
-    };
-
-    const colorClasses = {
-      success: "bg-green-500 border-green-600 text-white",
-      error: "bg-red-500 border-red-600 text-white",
-      warning: "bg-yellow-500 border-yellow-600 text-white",
-      info: "bg-blue-500 border-blue-600 text-white",
-    };
-
-    const notification = document.createElement("div");
-    notification.className = `moodmate-notification fixed top-4 right-4 p-4 rounded-lg shadow-lg border z-50 transition-all duration-500 transform translate-x-full opacity-0 max-w-sm flex items-start ${colorClasses[type]}`;
-    notification.innerHTML = `${iconSVG[type]}<div class="text-sm font-medium">${message}</div>`;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      notification.classList.replace("translate-x-full", "translate-x-0");
-      notification.classList.replace("opacity-0", "opacity-100");
-    }, 100);
-
-    const hideNotification = () => {
-      notification.classList.replace("translate-x-0", "translate-x-full");
-      notification.classList.replace("opacity-100", "opacity-0");
-      setTimeout(() => notification.remove(), 500);
-    };
-
-    setTimeout(hideNotification, type === "error" ? 5000 : 3000);
-    notification.addEventListener("click", hideNotification);
 }
 
+function showNotification(message, type = "info") {
+  const existingNotifications = document.querySelectorAll(
+    ".moodmate-notification"
+  );
+  existingNotifications.forEach((notification) => notification.remove());
+
+  const iconSVG = {
+    success: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+    error: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+    warning: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`,
+    info: `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+  };
+
+  const colorClasses = {
+    success: "bg-green-500 border-green-600 text-white",
+    error: "bg-red-500 border-red-600 text-white",
+    warning: "bg-yellow-500 border-yellow-600 text-white",
+    info: "bg-blue-500 border-blue-600 text-white",
+  };
+
+  const notification = document.createElement("div");
+  notification.className = `moodmate-notification fixed top-4 right-4 p-4 rounded-lg shadow-lg border z-50 transition-all duration-500 transform translate-x-full opacity-0 max-w-sm flex items-start ${colorClasses[type]}`;
+  notification.innerHTML = `${iconSVG[type]}<div class="text-sm font-medium">${message}</div>`;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.classList.replace("translate-x-full", "translate-x-0");
+    notification.classList.replace("opacity-0", "opacity-100");
+  }, 100);
+
+  const hideNotification = () => {
+    notification.classList.replace("translate-x-0", "translate-x-full");
+    notification.classList.replace("opacity-100", "opacity-0");
+    setTimeout(() => notification.remove(), 500);
+  };
+
+  setTimeout(hideNotification, type === "error" ? 5000 : 3000);
+  notification.addEventListener("click", hideNotification);
+}
 
 // Fungsi toggle password tidak berubah
 export function initPasswordToggle() {
@@ -102,7 +101,7 @@ export function initModalPasswordToggle() {
   }
 
   const toggleConfirmPassword = document.getElementById(
-    "toggle-confirm-password",
+    "toggle-confirm-password"
   );
   const confirmPasswordInput = document.getElementById("confirm-password");
   const iconConfirmPassword = document.getElementById("icon-confirm-password");
@@ -187,7 +186,7 @@ export default function LoginPresenter() {
           const userData = userDoc.data();
           const isPasswordValid = await bcrypt.compare(
             password,
-            userData.password,
+            userData.password
           );
 
           if (!isPasswordValid) {
@@ -204,7 +203,7 @@ export default function LoginPresenter() {
               lastLogin: serverTimestamp(),
               sessionId: sessionId,
             },
-            { merge: true },
+            { merge: true }
           );
 
           const userDataForStorage = {
@@ -220,14 +219,14 @@ export default function LoginPresenter() {
 
           localStorage.setItem(
             "moodmate-user",
-            JSON.stringify(userDataForStorage),
+            JSON.stringify(userDataForStorage)
           );
           localStorage.setItem("moodmate-logged-in", "true");
           localStorage.setItem("moodmate-current-user", userData.email);
           localStorage.setItem("moodmate-session-id", sessionId);
 
           window.dispatchEvent(
-            new CustomEvent("userLoggedIn", { detail: userDataForStorage }),
+            new CustomEvent("userLoggedIn", { detail: userDataForStorage })
           );
           renderNavbar();
           showNotification("Login berhasil!", "success");
@@ -316,7 +315,7 @@ export default function LoginPresenter() {
               password: hashedPassword,
               updatedAt: serverTimestamp(),
             },
-            { merge: true },
+            { merge: true }
           );
 
           showNotification("Password berhasil direset!", "success");
@@ -350,12 +349,12 @@ function handleLoginError(error) {
   };
 
   const message = Object.entries(errorMessages).find(
-    ([key]) => error.message.includes(key) || error.code === key,
+    ([key]) => error.message.includes(key) || error.code === key
   );
 
   showNotification(
     message?.[1] || ` ${error.message || "Terjadi kesalahan saat login"}`,
-    "error",
+    "error"
   );
 }
 

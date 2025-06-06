@@ -1,4 +1,4 @@
-import { db, serverTimestamp } from "../utils/firebase";
+import { db, serverTimestamp } from "../utils/firebase.js";
 import {
   collection,
   addDoc,
@@ -28,7 +28,7 @@ const FirebaseJournalService = {
 
       const recommendedActivities = getRandomActivities(
         entryData.mood || "neutral",
-        4,
+        4
       );
       const recommendedSongs = getRandomSongs(entryData.mood || "neutral", 3);
 
@@ -56,7 +56,7 @@ const FirebaseJournalService = {
 
       const docRef = await addDoc(
         collection(db, "journal_entries"),
-        journalEntry,
+        journalEntry
       );
 
       console.log("Journal entry saved to Firestore with ID:", docRef.id);
@@ -83,7 +83,7 @@ const FirebaseJournalService = {
       const q = query(
         collection(db, "journal_entries"),
         where("userEmail", "==", userEmail),
-        orderBy("createdAt", "desc"),
+        orderBy("createdAt", "desc")
       );
 
       const querySnapshot = await getDocs(q);
@@ -121,7 +121,7 @@ const FirebaseJournalService = {
 
       const docRef = await addDoc(
         collection(db, "custom_activities"),
-        customActivityData,
+        customActivityData
       );
 
       console.log("Custom activity saved to Firestore:", docRef.id);
@@ -144,7 +144,7 @@ const FirebaseJournalService = {
       const q = query(
         collection(db, "custom_activities"),
         where("userEmail", "==", userEmail),
-        orderBy("createdAt", "desc"),
+        orderBy("createdAt", "desc")
       );
 
       const querySnapshot = await getDocs(q);
@@ -157,7 +157,7 @@ const FirebaseJournalService = {
 
       console.log(
         "Retrieved custom activities from Firestore:",
-        customActivities,
+        customActivities
       );
       return customActivities;
     } catch (error) {
@@ -188,7 +188,7 @@ const FirebaseJournalService = {
           getRandomActivities(updateData.mood, 4);
         updateDataWithRecommendations.recommendedSongs = getRandomSongs(
           updateData.mood,
-          3,
+          3
         ).map((song) => ({
           title: song.title,
           artist: song.artist,

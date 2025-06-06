@@ -1,5 +1,5 @@
 import ApiService from "../../data/api.js";
-import { db } from "../../utils/firebase";
+import { db } from "../../utils/firebase.js";
 import {
   collection,
   query,
@@ -881,8 +881,8 @@ export default function RiwayatPresenter() {
       type === "success"
         ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400"
         : type === "error"
-        ? "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400"
-        : "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400"
+          ? "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400"
+          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400"
     }`;
 
     notification.innerHTML = `

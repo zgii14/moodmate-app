@@ -1,5 +1,5 @@
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../utils/firebase.js";
+import { db } from "../utils/firebaseAdmin.js";
 
 export const renderNavbar = () => {
   const app = document.getElementById("app");
@@ -55,21 +55,21 @@ export const renderNavbar = () => {
         !isLoggedIn
           ? `<li><a href="#/" class="${getActiveClass("#/")}">Home</a></li>
            <li><a href="#/about" class="${getActiveClass(
-             "#/about",
+             "#/about"
            )}">About</a></li>
            <li><a href="#/contact" class="${getActiveClass(
-             "#/contact",
+             "#/contact"
            )}">Contact</a></li>
            <li><a href="#/login" class="px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white hover:shadow-lg hover:scale-105 transition-all duration-300 ease-in-out font-semibold ml-4 transform btn-transition">Login</a></li>
            <li><a href="#/register" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300 ease-in-out font-semibold shadow-lg hover:shadow-2xl transform hover:scale-105 hover:-translate-y-1 btn-transition">Register</a></li>`
           : `<li><a href="#/dashboard" class="${getActiveClass(
-              "#/dashboard",
+              "#/dashboard"
             )}">Dashboard</a></li>
            <li><a href="#/journal" class="${getActiveClass(
-             "#/journal",
+             "#/journal"
            )}">Catatan</a></li>
            <li><a href="#/riwayat" class="${getActiveClass(
-             "#/riwayat",
+             "#/riwayat"
            )}">Riwayat</a></li>
            <li class="relative group ml-4">
               <img src="${DEFAULT_PHOTO}" class="h-10 w-10 rounded-full cursor-pointer border-2 ${
@@ -151,29 +151,29 @@ export const renderNavbar = () => {
         ${
           !isLoggedIn
             ? `<a href="#/" class="${getMobileActiveClass(
-                "#/",
+                "#/"
               )}" data-close-menu><i class="fas fa-home mr-2"></i> Home</a>
              <a href="#/about" class="${getMobileActiveClass(
-               "#/about",
+               "#/about"
              )}" data-close-menu><i class="fas fa-info-circle mr-2"></i> About</a>
              <a href="#/contact" class="${getMobileActiveClass(
-               "#/contact",
+               "#/contact"
              )}" data-close-menu><i class="fas fa-phone mr-2"></i> Contact</a>
              <div class="pt-4 space-y-3">
                <a href="#/login" class="block w-full px-4 py-3 border-2 border-blue-600 text-blue-600 rounded-lg text-center font-semibold hover:bg-blue-600 hover:text-white transition-all duration-300" data-close-menu><i class="fas fa-sign-in-alt mr-2"></i> Login</a>
                <a href="#/register" class="block w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-center font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300" data-close-menu><i class="fas fa-user-plus mr-2"></i> Register</a>
              </div>`
             : `<a href="#/dashboard" class="${getMobileActiveClass(
-                "#/dashboard",
+                "#/dashboard"
               )}" data-close-menu><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</a>
              <a href="#/journal" class="${getMobileActiveClass(
-               "#/journal",
+               "#/journal"
              )}" data-close-menu><i class="fas fa-book mr-2"></i> Catatan</a>
              <a href="#/riwayat" class="${getMobileActiveClass(
-               "#/riwayat",
+               "#/riwayat"
              )}" data-close-menu><i class="fas fa-history mr-2"></i> Riwayat</a>
              <a href="#/profil" class="${getMobileActiveClass(
-               "#/profil",
+               "#/profil"
              )}" data-close-menu><i class="fas fa-user mr-2"></i> Profil</a>
              <div class="pt-4 space-y-3 border-t border-gray-200 dark:border-gray-600">
                <button id="mobileToggleDarkMode" class="block w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-all duration-200"><i class="fas fa-moon mr-2"></i> Dark Mode</button>

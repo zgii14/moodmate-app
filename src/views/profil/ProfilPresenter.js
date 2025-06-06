@@ -126,7 +126,7 @@ export default function ProfilPresenter() {
         profileImg.closest(".profile-photo-container") ||
         profileImg.parentElement;
       if (container) {
-        container.offsetHeight; 
+        container.offsetHeight;
       }
     }
   };
@@ -306,7 +306,7 @@ export default function ProfilPresenter() {
           setTimeout(() => {
             const container =
               document.querySelector(".profile-section") || document.body;
-            container.offsetHeight; 
+            container.offsetHeight;
           }, 200);
         } catch (error) {
           console.error("Error uploading photo:", error);
@@ -393,7 +393,7 @@ export default function ProfilPresenter() {
       setTimeout(() => {
         const container =
           document.querySelector(".profile-section") || document.body;
-        container.offsetHeight; 
+        container.offsetHeight;
       }, 100);
     } catch (error) {
       console.error("Error resetting profile photo:", error);
@@ -569,7 +569,7 @@ export default function ProfilPresenter() {
       const editNameInput = document.getElementById("edit-name");
       const editPasswordInput = document.getElementById("edit-password");
       const editPasswordConfirmInput = document.getElementById(
-        "edit-password-confirm",
+        "edit-password-confirm"
       );
 
       const newName = editNameInput?.value?.trim() || "";
@@ -628,7 +628,7 @@ export default function ProfilPresenter() {
   const clearEditForm = () => {
     const editPasswordInput = document.getElementById("edit-password");
     const editPasswordConfirmInput = document.getElementById(
-      "edit-password-confirm",
+      "edit-password-confirm"
     );
 
     if (editPasswordInput) editPasswordInput.value = "";

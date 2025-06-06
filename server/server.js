@@ -3,11 +3,11 @@ const Bcrypt = require("bcryptjs");
 const fetch = require("node-fetch");
 const fs = require("fs").promises;
 const path = require("path");
-
+import { db, serverTimestamp } from "../../utils/firebase";
 const DATA_DIR = path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const JOURNALS_FILE = path.join(DATA_DIR, "journals.json");
-
+import { collection, setDoc, doc } from "firebase/firestore";
 let users = [];
 let sessions = new Map();
 let journalEntries = [];
@@ -31,34 +31,19 @@ const ensureDataDirectory = async () => {
 
 const loadData = async () => {
   try {
-    await ensureDataDirectory();
+    await ensureDataDirectory(); // Opsional kalau kamu masih butuh
 
-    try {
-      const usersData = await fs.readFile(USERS_FILE, "utf8");
-      users = JSON.parse(usersData);
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        console.log("📄 Users file not found, starting with empty array");
-        users = [];
-        await saveUsers();
-      } else {
-        throw error;
-      }
-    }
+    // Load users (kalau belum dimasukkan)
+    const userSnapshot = await getDocs(collection(db, "users"));
+    users = userSnapshot.docs.map((doc) => doc.data());
 
-    try {
-      const journalsData = await fs.readFile(JOURNALS_FILE, "utf8");
-      journalEntries = JSON.parse(journalsData);
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        console.log("📄 Journals file not found, starting with empty array");
-        journalEntries = [];
-        await saveJournals();
-      } else {
-        throw error;
-      }
-    }
+    // Load journals
+    const journalSnapshot = await getDocs(collection(db, "journals"));
+    journalEntries = journalSnapshot.docs.map((doc) => doc.data());
 
+    console.log("✅ Journals loaded from Firestore:", journalEntries.length);
+
+    // Update idCounter supaya tetap unik
     const allIds = [
       ...users.map((u) => u.id),
       ...journalEntries.map((j) => j.id),
@@ -74,26 +59,43 @@ const loadData = async () => {
       idCounter = maxId + 1;
     }
   } catch (error) {
-    console.error("❌ Error loading data:", error);
+    console.error("❌ Error loading data from Firestore:", error);
   }
 };
 
 const saveUsers = async () => {
   try {
-    await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+    const userCollection = collection(db, "users");
+
+    for (const user of users) {
+      await setDoc(doc(userCollection, user.id), {
+        ...user,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    console.log("✅ Users saved to Firestore");
   } catch (error) {
-    console.error("❌ Error saving users:", error);
+    console.error("❌ Error saving users to Firestore:", error);
   }
 };
 
 const saveJournals = async () => {
   try {
-    await fs.writeFile(JOURNALS_FILE, JSON.stringify(journalEntries, null, 2));
+    const journalCollection = collection(db, "journals");
+
+    for (const journal of journalEntries) {
+      await setDoc(doc(journalCollection, journal.id), {
+        ...journal,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    console.log("✅ Journals saved to Firestore");
   } catch (error) {
-    console.error("❌ Error saving journals:", error);
+    console.error("❌ Error saving journals to Firestore:", error);
   }
 };
-
 const init = async () => {
   await loadData();
 

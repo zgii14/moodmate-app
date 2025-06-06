@@ -1,6 +1,6 @@
 import Chart from "chart.js/auto";
 import ApiService from "../../data/api.js";
-import { db } from "../../utils/firebase";
+import { db } from "../../utils/firebaseAdmin.js";
 import {
   collection,
   query,
@@ -52,9 +52,9 @@ export default function DashboardPresenter() {
 
   const moodMapping = {
     sad: "sad",
-    anxious: "fear", 
+    anxious: "fear",
     neutral: "neutral",
-    angry: "anger", 
+    angry: "anger",
     happy: "happy",
     love: "love",
   };
@@ -230,15 +230,15 @@ export default function DashboardPresenter() {
     const validMoodStats = moodStats.filter((stat) => stat.count > 0);
 
     if (validMoodStats.length === 0) {
-      return Object.keys(moodConfig)[0]; 
+      return Object.keys(moodConfig)[0];
     }
 
     validMoodStats.sort((a, b) => {
       if (a.count !== b.count) {
-        return b.count - a.count; 
+        return b.count - a.count;
       }
 
-      return b.latestTimestamp - a.latestTimestamp; 
+      return b.latestTimestamp - a.latestTimestamp;
     });
 
     return validMoodStats[0].mood;
@@ -296,10 +296,10 @@ export default function DashboardPresenter() {
     const validMoodStats = moodStats.filter((stat) => stat.count > 0);
     validMoodStats.sort((a, b) => {
       if (a.count !== b.count) {
-        return b.count - a.count; 
+        return b.count - a.count;
       }
 
-      return b.latestTimestamp - a.latestTimestamp; 
+      return b.latestTimestamp - a.latestTimestamp;
     });
 
     const dominantMood = validMoodStats[0].mood;
@@ -500,7 +500,7 @@ export default function DashboardPresenter() {
     const labels = [];
     const data = [];
     const colors = [];
-    const dateEntries = []; 
+    const dateEntries = [];
     const dates = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
@@ -519,7 +519,7 @@ export default function DashboardPresenter() {
       );
 
       const entry = journalData.find((e) => e.dateString === dateStr);
-      dateEntries.push(entry); 
+      dateEntries.push(entry);
 
       if (entry) {
         const mood = entry.mood?.toLowerCase() || "neutral";
@@ -711,10 +711,10 @@ export default function DashboardPresenter() {
       type === "success"
         ? "bg-green-500"
         : type === "error"
-        ? "bg-red-500"
-        : type === "warning"
-        ? "bg-yellow-500"
-        : "bg-blue-500"
+          ? "bg-red-500"
+          : type === "warning"
+            ? "bg-yellow-500"
+            : "bg-blue-500"
     } text-white`;
     notification.textContent = message;
     document.body.appendChild(notification);

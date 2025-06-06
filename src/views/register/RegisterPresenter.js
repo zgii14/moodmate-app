@@ -1,7 +1,7 @@
 // Meng-import library yang dibutuhkan
 // ApiService tidak lagi digunakan di file ini, jadi bisa kita hapus atau biarkan.
 // import ApiService from "../../data/api.js";
-import { db, serverTimestamp } from "../../utils/firebase";
+import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import bcrypt from "bcryptjs";
 
@@ -14,7 +14,7 @@ export default function RegisterPresenter() {
   function showNotification(message, type = "info") {
     // ... (Fungsi notifikasi Anda, tidak ada perubahan di sini)
     const existingNotifications = document.querySelectorAll(
-      ".moodmate-notification",
+      ".moodmate-notification"
     );
     existingNotifications.forEach((notification) => {
       if (document.body.contains(notification)) {
@@ -40,7 +40,8 @@ export default function RegisterPresenter() {
     const colorClasses = {
       success: "bg-green-500 border-green-600 text-white shadow-green-500/25",
       error: "bg-red-500 border-red-600 text-white shadow-red-500/25",
-      warning: "bg-yellow-500 border-yellow-600 text-white shadow-yellow-500/25",
+      warning:
+        "bg-yellow-500 border-yellow-600 text-white shadow-yellow-500/25",
       info: "bg-blue-500 border-blue-600 text-white shadow-blue-500/25",
     };
 
@@ -132,7 +133,7 @@ export default function RegisterPresenter() {
 
           if (userDoc.exists()) {
             throw new Error(
-              "Email sudah terdaftar! Silakan gunakan email lain.",
+              "Email sudah terdaftar! Silakan gunakan email lain."
             );
           }
 
@@ -171,22 +172,22 @@ export default function RegisterPresenter() {
           if (error.message.includes("Email sudah terdaftar")) {
             showNotification(
               "❌ Email sudah terdaftar! Silakan gunakan email lain atau login.",
-              "error",
+              "error"
             );
           } else if (error.code === "permission-denied") {
             showNotification(
               "❌ Akses ditolak. Periksa aturan Firestore.",
-              "error",
+              "error"
             );
           } else if (error.code === "unavailable") {
             showNotification(
               "❌ Koneksi database bermasalah. Coba lagi nanti.",
-              "error",
+              "error"
             );
           } else {
             showNotification(
               `❌ ${error.message || "Terjadi kesalahan saat registrasi"}`,
-              "error",
+              "error"
             );
           }
         } finally {
