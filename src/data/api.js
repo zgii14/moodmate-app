@@ -17,7 +17,7 @@ const API = {
   HEALTH_CHECK: `${CONFIG.BASE_URL}/health`,
   PREDICT_MOOD: `${CONFIG.BASE_URL}/predict-mood`,
 };
- 
+
 class ApiService {
   static getBasicHeaders() {
     const headers = {
@@ -25,20 +25,24 @@ class ApiService {
     };
 
     const sessionId = this.getSessionId();
+    console.log("Session ID yang dikirim ke backend:", sessionId); // <-- Tambahkan baris ini
+
     if (sessionId) {
-      headers["X-Session-ID"] = sessionId;
+      headers["x-session-id"] = sessionId;
     }
 
     return headers;
   }
-
   static async makeRequest(url, options = {}) {
+    const headers = {
+      ...this.getBasicHeaders(),
+      ...options.headers,
+    };
+    console.log("Headers yang dikirim ke backend:", headers); // <-- Tambahkan log ini
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...this.getBasicHeaders(),
-        ...options.headers,
-      },
+      headers,
     });
 
     return response;

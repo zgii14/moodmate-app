@@ -3,10 +3,15 @@ import CONFIG from "../config";
 const ApiService = {
   async predictMood(text) {
     try {
-      console.log("Sending request to backend API...");
+      const sessionId = localStorage.getItem("moodmate-session-id"); // Ambil sessionId
+      console.log("Session ID yang dikirim ke backend:", sessionId);
+
       const response = await fetch(`${CONFIG.BASE_URL}/predict-mood`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": sessionId, // Tambahkan header ini
+        },
         credentials: "include",
         body: JSON.stringify({ text }),
       });
