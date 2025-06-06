@@ -1,6 +1,6 @@
 import Chart from "chart.js/auto";
 import ApiService from "../../data/api.js";
-import { db } from "../../utils/firebaseAdmin.js";
+import { db } from "../../utils/firebase.js";
 import {
   collection,
   query,
