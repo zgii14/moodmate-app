@@ -106,6 +106,12 @@ const init = async () => {
 
   const validateSession = (request) => {
     const sessionId = request.headers["x-session-id"];
+    console.log(
+      "SessionId diterima:",
+      sessionId,
+      "Ada di sessions?",
+      sessions.has(sessionId)
+    );
     if (!sessionId || !sessions.has(sessionId)) {
       return null;
     }
