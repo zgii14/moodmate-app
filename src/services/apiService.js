@@ -3,7 +3,7 @@ const ApiService = {
   async predictMood(text) {
     try {
       console.log("Sending request to backend API...");
-      const response = await fetch(`${CONFIG.BASE_URL}/predic-mood`, {
+      const response = await fetch(`${CONFIG.BASE_URL}/predict-mood`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
