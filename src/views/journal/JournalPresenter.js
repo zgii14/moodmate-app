@@ -1,6 +1,6 @@
 import ApiService from "../../services/apiService";
 import FirebaseJournalService from "../../services/firebaseJournalService";
-import CONFIG from "../config";
+import CONFIG from '../../config';
 
 export default function JournalPresenter() {
   const editingId = localStorage.getItem("editEntryId");
