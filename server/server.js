@@ -4,7 +4,6 @@ const fetch = require("node-fetch");
 const fs = require("fs").promises;
 const path = require("path");
 const { db, serverTimestamp } = require("./utilserver/firebaseAdmin.js");
-const { getDocs, collection, setDoc, doc } = require("firebase/firestore");
 let users = [];
 let sessions = new Map();
 let journalEntries = [];
@@ -31,13 +30,11 @@ const loadData = async () => {
     await ensureDataDirectory(); // Opsional kalau kamu masih butuh
 
     // Load users (kalau belum dimasukkan)
-    const userSnapshot = await getDocs(collection(db, "users"));
+    const userSnapshot = await db.collection("users").get();
     users = userSnapshot.docs.map((doc) => doc.data());
 
-    // Load journals
-    const journalSnapshot = await getDocs(collection(db, "journals"));
+    const journalSnapshot = await db.collection("journals").get();
     journalEntries = journalSnapshot.docs.map((doc) => doc.data());
-
     console.log("✅ Journals loaded from Firestore:", journalEntries.length);
 
     // Update idCounter supaya tetap unik
@@ -65,10 +62,13 @@ const saveUsers = async () => {
     const userCollection = collection(db, "users");
 
     for (const user of users) {
-      await setDoc(doc(userCollection, user.id), {
-        ...user,
-        updatedAt: serverTimestamp(),
-      });
+      await db
+        .collection("users")
+        .doc(user.id)
+        .set({
+          ...user,
+          updatedAt: new Date().toISOString(), // atau gunakan admin.firestore.FieldValue.serverTimestamp() jika ingin timestamp Firestore
+        });
     }
 
     console.log("✅ Users saved to Firestore");
@@ -80,14 +80,15 @@ const saveUsers = async () => {
 const saveJournals = async () => {
   try {
     const journalCollection = collection(db, "journals");
-
     for (const journal of journalEntries) {
-      await setDoc(doc(journalCollection, journal.id), {
-        ...journal,
-        updatedAt: serverTimestamp(),
-      });
+      await db
+        .collection("journals")
+        .doc(journal.id)
+        .set({
+          ...journal,
+          updatedAt: new Date().toISOString(),
+        });
     }
-
     console.log("✅ Journals saved to Firestore");
   } catch (error) {
     console.error("❌ Error saving journals to Firestore:", error);
