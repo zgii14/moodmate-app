@@ -1,5 +1,5 @@
 const CONFIG = {
-  BASE_URL: "http://localhost:9000/api",
+  BASE_URL: "backend-moodmate.up.railway.app",
   DEFAULT_LANGUAGE: "id-ID",
   CACHE_NAME: "MoodMate-V1",
   DATABASE_NAME: "moodmate-database",
