@@ -7,4 +7,6 @@ const CONFIG = {
   WEB_SOCKET_SERVER: "ws://localhost:9000",
 };
 
+// Export the configuration object
 export default CONFIG;
+ 
