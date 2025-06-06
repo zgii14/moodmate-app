@@ -1,4 +1,5 @@
 import CONFIG from "../config";
+// asynchronous function to call the backend API for mood prediction
 const ApiService = {
   async predictMood(text) {
     try {
