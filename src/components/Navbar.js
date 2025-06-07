@@ -1,7 +1,6 @@
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../utils/firebase.js";
-import ApiService from "../services/apiService";
-import UserModel from "../models/UserModel.js";
+
+import { UserModel } from "../models/UserModel.js"; // Mungkin path ini salah
+console.log("UserModel di dalam Navbar:", UserModel); // <-- TAMBAHKAN INI
 export const renderNavbar = () => {
   const app = document.getElementById("app");
   let nav = app.querySelector("nav");

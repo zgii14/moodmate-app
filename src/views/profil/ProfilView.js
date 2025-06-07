@@ -1,5 +1,5 @@
 import { UserModel } from "../../models/UserModel.js";
-
+console.log("UserModel di dalam ProfilView:", UserModel); // <-- TAMBAHKAN INI
 export default async function ProfilView() {
   const user = UserModel.getCurrent();
 
