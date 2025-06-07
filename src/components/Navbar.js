@@ -6,7 +6,7 @@ export const renderNavbar = () => {
   let nav = app.querySelector("nav");
 
   const isLoggedIn = localStorage.getItem("moodmate-logged-in") === "true";
-
+  const user = UserModel.getCurrent();
   const currentHash = window.location.hash || "#/";
 
   const getActiveClass = (path) => {
@@ -24,24 +24,7 @@ export const renderNavbar = () => {
   const DEFAULT_PHOTO =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiByeD0iNzUiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTc1IDY1QzgyLjE3OTcgNjUgODggNTkuMTc5NyA4OCA1MkM4OCA0NC44MjAzIDgyLjE3OTcgMzkgNzUgMzlDNjcuODIwMyAzOSA2MiA0NC44MjAzIDYyIDUyQzYyIDU5LjE3OTcgNjcuODIwMyA2NSA3NSA2NVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTEwNSA5NUM5Ny44NzA3IDg5LjU2NDggODcuNzEwNSA4NiA3NSA4NkM2Mi4yODk1IDg2IDUyLjEyOTMgODkuNTY0OCA0NSA5NUw0NSAxMTBDNDUgMTE1LjUyMyA0OS40NzcgMTIwIDU1IDEyMEw5NSAxMjBDMTAwLjUyMyAxMjAgMTA1IDExNS41MjMgMTA1IDExMEwxMDUgOTVaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
 
-  const getCurrentUserProfilePhoto = async () => {
-    try {
-      const userEmail = localStorage.getItem("moodmate-current-user");
-      if (!userEmail) return DEFAULT_PHOTO;
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        return userSnap.data().profilePhoto || DEFAULT_PHOTO;
-      }
-      return DEFAULT_PHOTO;
-    } catch (error) {
-      console.error("Error loading profile photo:", error);
-      return DEFAULT_PHOTO;
-    }
-  };
-
+  const photoUrl = user?.profilePhoto || DEFAULT_PHOTO;
   const navHTML = `
     <div class="flex items-center space-x-3">
       <img src="/images/favicon.png" class="h-12" alt="Logo" />
@@ -107,21 +90,6 @@ export const renderNavbar = () => {
   }
 
   nav.innerHTML = navHTML;
-
-  const updateNavbarProfilePhoto = async () => {
-    if (isLoggedIn) {
-      const profileImg = document.getElementById("profileToggle");
-      if (profileImg) {
-        try {
-          const photoData = await getCurrentUserProfilePhoto();
-          profileImg.src = photoData;
-        } catch (error) {
-          console.error("Error updating navbar profile photo:", error);
-          profileImg.src = DEFAULT_PHOTO;
-        }
-      }
-    }
-  };
 
   const createMobileMenu = () => {
     const existingMenu = document.getElementById("mobileMenu");
@@ -258,21 +226,7 @@ export const renderNavbar = () => {
     if (logoutBtn) {
       logoutBtn.addEventListener("click", async (e) => {
         e.preventDefault();
-        try {
-          // --- PERBAIKAN #2: Panggil method logout dari ApiService ---
-          await ApiService.logout();
-        } catch (error) {
-          console.error("Logout error:", error);
-        }
-        // Bersihkan localStorage
-        localStorage.removeItem("moodmate-session-id");
-        localStorage.removeItem("moodmate-logged-in");
-        localStorage.removeItem("moodmate-current-user");
-        localStorage.removeItem("moodmate-user");
-        localStorage.removeItem("profile_photo");
-
-        toggleMobileMenu(false); // Pastikan menu mobile tertutup
-        window.location.hash = "/login";
+        UserModel.logout();
         // Tidak perlu renderNavbar lagi di sini karena hashchange akan memicunya
       });
     }
@@ -340,15 +294,17 @@ export const renderNavbar = () => {
   });
 
   updateNavbarProfilePhoto();
-
-  window.addEventListener("profilePhotoUpdated", (event) => {
-    const profileImg = document.getElementById("profileToggle");
-    if (profileImg && event.detail && event.detail.photoData) {
-      profileImg.src = event.detail.photoData;
-    }
+  // Ganti dengan event listener yang lebih umum
+  window.addEventListener("userProfileChanged", () => {
+    console.log("Profile changed, re-rendering navbar...");
+    renderNavbar();
   });
 };
 
 window.addEventListener("hashchange", () => {
+  renderNavbar();
+});
+// Event listener ini juga bisa ditambahkan jika belum ada
+window.addEventListener("userLoggedIn", () => {
   renderNavbar();
 });
