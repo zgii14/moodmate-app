@@ -299,52 +299,6 @@ const init = async () => {
     },
   });
   // Profile
-  server.route({
-    method: "GET",
-    path: "/api/auth/profile",
-    handler: async (request, h) => {
-      try {
-        const session = await validateSession(request);
-        if (!session) {
-          return h
-            .response({ success: false, message: "Session tidak valid" })
-            .code(401);
-        }
-
-        const userRef = db.collection("users").doc(session.email);
-        const userDoc = await userRef.get();
-
-        if (!userDoc.exists) {
-          return h
-            .response({ success: false, message: "User tidak ditemukan" })
-            .code(404);
-        }
-        const userData = userDoc.data();
-
-        return {
-          success: true,
-          message: "Profil berhasil diambil",
-          data: {
-            user: {
-              id: userDoc.id,
-              name: userData.name,
-              email: userData.email,
-              createdAt: userData.createdAt,
-              updatedAt: userData.updatedAt,
-            },
-          },
-        };
-      } catch (error) {
-        console.error("!!! FATAL ERROR in /api/auth/profile handler:", error);
-        return h
-          .response({
-            success: false,
-            message: "Terjadi kesalahan internal pada server.",
-          })
-          .code(500);
-      }
-    },
-  });
 
   server.route({
     method: "GET",
