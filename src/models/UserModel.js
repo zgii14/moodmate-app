@@ -100,12 +100,16 @@ export const UserModel = {
 
   async logout() {
     try {
-      await ApiService.logout(); // panggil endpoint backend
+      // --- PERBAIKAN #2: Panggil method 'logout' dari objek ApiService ---
+      await ApiService.logout();
+
       this.cleanupInvalidSession();
       location.hash = "/login";
       console.log("User logged out successfully");
     } catch (error) {
       console.error("Error during logout:", error);
+      // Tetap paksa logout di sisi frontend meskipun backend gagal
+      this.cleanupInvalidSession();
       location.hash = "/login";
     }
   },
@@ -116,8 +120,6 @@ export const UserModel = {
       localStorage.removeItem("moodmate-logged-in");
       localStorage.removeItem("moodmate-current-user");
       localStorage.removeItem("moodmate-user");
-      localStorage.removeItem("profile_photo");
-      localStorage.removeItem("temp-user-data");
       console.log("Invalid session cleaned up");
     } catch (error) {
       console.error("Error during session cleanup:", error);
@@ -128,7 +130,7 @@ export const UserModel = {
     const sessionId = localStorage.getItem("moodmate-session-id");
     const userData = this.getCurrent();
     if (!sessionId || !userData || !userData.email) {
-      this.cleanupInvalidSession();
+      // Tidak perlu cleanup di sini karena bisa menyebabkan loop tak terbatas
       return false;
     }
     return true;

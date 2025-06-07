@@ -1,6 +1,6 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../utils/firebase.js";
-import { logout as apiLogout } from "../services/apiService";
+import ApiService from "../services/apiService";
 export const renderNavbar = () => {
   const app = document.getElementById("app");
   let nav = app.querySelector("nav");
@@ -259,9 +259,9 @@ export const renderNavbar = () => {
       logoutBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         try {
-          await apiLogout(); // Panggil endpoint backend
+          // --- PERBAIKAN #2: Panggil method logout dari ApiService ---
+          await ApiService.logout();
         } catch (error) {
-          // Optional: tampilkan notifikasi error
           console.error("Logout error:", error);
         }
         // Bersihkan localStorage
@@ -270,10 +270,10 @@ export const renderNavbar = () => {
         localStorage.removeItem("moodmate-current-user");
         localStorage.removeItem("moodmate-user");
         localStorage.removeItem("profile_photo");
-        localStorage.removeItem("temp-user-data");
-        toggleMobileMenu(false);
+
+        toggleMobileMenu(false); // Pastikan menu mobile tertutup
         window.location.hash = "/login";
-        setTimeout(() => renderNavbar(), 100);
+        // Tidak perlu renderNavbar lagi di sini karena hashchange akan memicunya
       });
     }
   };
