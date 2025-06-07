@@ -151,7 +151,7 @@ export default function ProfilPresenter() {
 
   const loadProfilePhoto = async () => {
     try {
-      const userEmail =  UserModel.getCurrentUserEmail();
+      const userEmail = UserModel.getCurrentUserEmail();
       if (!userEmail) return null;
 
       if (cachedProfilePhoto !== null) {
@@ -174,7 +174,7 @@ export default function ProfilPresenter() {
   };
 
   const saveProfilePhoto = async (imageData) => {
-    const userEmail =  UserModel.getCurrentUserEmail();
+    const userEmail = UserModel.getCurrentUserEmail();
     if (!userEmail) throw new Error("User tidak ditemukan");
 
     const userRef = doc(db, "users", userEmail);
@@ -187,7 +187,7 @@ export default function ProfilPresenter() {
   };
 
   const removeProfilePhoto = async () => {
-    const userEmail =  UserModel.getCurrentUserEmail();
+    const userEmail = UserModel.getCurrentUserEmail();
     if (!userEmail) throw new Error("User tidak ditemukan");
 
     const userRef = doc(db, "users", userEmail);
@@ -222,7 +222,7 @@ export default function ProfilPresenter() {
         return;
       }
 
-      const userEmail =  UserModel.getCurrentUserEmail();
+      const userEmail = UserModel.getCurrentUserEmail();
       if (!userEmail) {
         showToast("User tidak terautentikasi", "error");
         return;
@@ -357,7 +357,6 @@ export default function ProfilPresenter() {
     }
   };
 
-
   const validatePassword = (password, confirmPassword) => {
     if (password && password.length < 6) {
       return "Password minimal 6 karakter";
@@ -380,7 +379,6 @@ export default function ProfilPresenter() {
     }
     return null;
   };
-
 
   const toggleEditMode = (isEditing) => {
     const viewMode = document.getElementById("profile-view-mode");
@@ -652,5 +650,7 @@ export default function ProfilPresenter() {
     handleEditProfile,
     handleSaveProfile,
     handleCancelEdit,
+    updateUserProfile,
+    loadUserProfile,
   };
 }
