@@ -151,7 +151,7 @@ export default function ProfilPresenter() {
 
   const loadProfilePhoto = async () => {
     try {
-      const userEmail = getCurrentUserEmail();
+      const userEmail =  UserModel.getCurrentUserEmail();
       if (!userEmail) return null;
 
       if (cachedProfilePhoto !== null) {
@@ -174,7 +174,7 @@ export default function ProfilPresenter() {
   };
 
   const saveProfilePhoto = async (imageData) => {
-    const userEmail = getCurrentUserEmail();
+    const userEmail =  UserModel.getCurrentUserEmail();
     if (!userEmail) throw new Error("User tidak ditemukan");
 
     const userRef = doc(db, "users", userEmail);
@@ -187,7 +187,7 @@ export default function ProfilPresenter() {
   };
 
   const removeProfilePhoto = async () => {
-    const userEmail = getCurrentUserEmail();
+    const userEmail =  UserModel.getCurrentUserEmail();
     if (!userEmail) throw new Error("User tidak ditemukan");
 
     const userRef = doc(db, "users", userEmail);
@@ -222,7 +222,7 @@ export default function ProfilPresenter() {
         return;
       }
 
-      const userEmail = getCurrentUserEmail();
+      const userEmail =  UserModel.getCurrentUserEmail();
       if (!userEmail) {
         showToast("User tidak terautentikasi", "error");
         return;
