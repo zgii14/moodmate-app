@@ -36,13 +36,19 @@ async function deleteSessionFromFirestore(sessionId) {
 const loadData = async () => {
   try {
     const userSnapshot = await db.collection("users").get();
-    users = userSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })); // Menambahkan ID dokumen
+
+    // PERBAIKAN: Kita mengambil data DAN ID dokumennya
+    users = userSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
     const journalSnapshot = await db.collection("journals").get();
     journalEntries = journalSnapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id,
     }));
+
+    console.log(
+      `✅ Successfully loaded ${users.length} users and ${journalEntries.length} journals.`
+    );
 
     // Update idCounter supaya tetap unik
     const allIds = [
