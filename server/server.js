@@ -186,46 +186,76 @@ const init = async () => {
   });
 
   // Login
+  // Ganti handler login Anda yang lama dengan yang ini
   server.route({
     method: "POST",
     path: "/api/auth/login",
     handler: async (request, h) => {
-      const { email, password } = request.payload;
-      const user = users.find((u) => u.email === email);
-      if (!user) {
-        return h
-          .response({ success: false, message: "Email atau password salah" })
-          .code(401);
-      }
-      const isValid = await Bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return h
-          .response({ success: false, message: "Email atau password salah" })
-          .code(401);
-      }
-      const sessionId = generateSessionId();
-      const sessionData = {
-        userId: user.id,
-        email: user.email,
-        createdAt: getCurrentDate(),
-      };
-      await saveSessionToFirestore(sessionId, sessionData);
+      // Menambahkan blok try...catch yang solid
+      try {
+        const { email, password } = request.payload;
+        console.log(`[LOGIN] - Attempting login for email: ${email}`);
 
-      return h
-        .response({
-          success: true,
-          message: "Login berhasil",
-          data: {
-            sessionId: sessionId,
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              createdAt: user.createdAt,
+        // Mengambil data user dari array yang sudah di-load saat startup
+        // PENTING: Pastikan logika loadData Anda sudah benar
+        const user = users.find((u) => u.email === email);
+
+        if (!user) {
+          console.error(`[LOGIN] - Failure: User not found for email ${email}`);
+          return h
+            .response({ success: false, message: "Email atau password salah" })
+            .code(401);
+        }
+
+        console.log(`[LOGIN] - User found. Comparing password for ${email}...`);
+
+        // Membandingkan password yang diberikan dengan hash di database
+        const isPasswordValid = await Bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+          console.error(
+            `[LOGIN] - Failure: Invalid password for email ${email}`
+          );
+          return h
+            .response({ success: false, message: "Email atau password salah" })
+            .code(401);
+        }
+
+        // Jika berhasil, buat session dan simpan ke Firestore
+        const sessionId = generateSessionId();
+        const sessionData = {
+          userId: user.id,
+          email: user.email,
+          createdAt: getCurrentDate(),
+        };
+        await saveSessionToFirestore(sessionId, sessionData);
+
+        console.log(`[LOGIN] - Success for email: ${email}`);
+
+        return h
+          .response({
+            success: true,
+            message: "Login berhasil",
+            data: {
+              sessionId: sessionId,
+              user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              },
             },
-          },
-        })
-        .header("X-Session-ID", sessionId);
+          })
+          .header("X-Session-ID", sessionId);
+      } catch (error) {
+        // INI AKAN MENANGKAP ERROR APAPUN DAN MENAMPILKANNYA DI LOG
+        console.error("!!! FATAL ERROR in /api/auth/login handler:", error);
+        return h
+          .response({
+            success: false,
+            message: "Terjadi kesalahan internal pada server.",
+          })
+          .code(500);
+      }
     },
   });
 
