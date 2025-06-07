@@ -1,5 +1,4 @@
-import ApiService from "../data/api.js";
-import { logout as apiLogout } from "../services/apiService";
+import ApiService from "../services/apiService";
 export const UserModel = {
   getCurrent() {
     try {
@@ -101,7 +100,7 @@ export const UserModel = {
 
   async logout() {
     try {
-      await apiLogout(); // panggil endpoint backend
+      await ApiService.logout(); // panggil endpoint backend
       this.cleanupInvalidSession();
       location.hash = "/login";
       console.log("User logged out successfully");
