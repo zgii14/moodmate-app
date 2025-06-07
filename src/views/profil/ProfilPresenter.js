@@ -349,26 +349,33 @@ export default function ProfilPresenter() {
       }
     }
   };
-
-  const handleEditProfile = async () => {
+  // --- FUNGSI INI DIUBAH ---
+  const handleEditProfile = () => {
     const isCurrentlyEditing = !document
       .getElementById("profile-edit-mode")
       .classList.contains("hidden");
-
     if (isCurrentlyEditing) {
       clearEditForm();
       toggleEditMode(false);
     } else {
       try {
-        const userData = await loadUserProfile();
+        // Mengambil data dari UserModel, bukan memanggil fungsi yang sudah dihapus
+        const userData = UserModel.getCurrent();
+        if (!userData) {
+          showToast(
+            "Data pengguna tidak ditemukan, silakan muat ulang.",
+            "error"
+          );
+          return;
+        }
         const editNameInput = document.getElementById("edit-name");
         if (editNameInput) {
           editNameInput.value = userData.name || "";
         }
         toggleEditMode(true);
       } catch (error) {
-        console.error("Error loading user data:", error);
-        showToast("Gagal memuat data profil", "error");
+        console.error("Error preparing edit mode:", error);
+        showToast("Gagal memuat data untuk diedit.", "error");
       }
     }
   };
@@ -545,7 +552,7 @@ export default function ProfilPresenter() {
     const trySetup = () => {
       if (waitForElements()) {
         setupEventListeners();
-        loadAndDisplayPhoto();
+        loadAndDisplayProfile();
         return true;
       }
       return false;
@@ -574,13 +581,5 @@ export default function ProfilPresenter() {
 
   return {
     init,
-    loadAndDisplayPhoto,
-    loadAndDisplayProfile,
-    resetToDefault,
-    handleEditProfile,
-    handleSaveProfile,
-    handleCancelEdit,
-    updateUserProfile,
-    loadUserProfile,
   };
 }
