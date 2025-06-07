@@ -146,10 +146,10 @@ export function initForgotPasswordModal() {
 }
 
 // Fungsi utama untuk halaman Login
+// Fungsi utama untuk halaman Login (Dengan Perbaikan)
 export default function LoginPresenter() {
   setTimeout(() => {
     const loginForm = document.getElementById("form-login");
-    const resetForm = document.getElementById("reset-password-form");
 
     if (loginForm) {
       loginForm.addEventListener("submit", async (e) => {
@@ -168,29 +168,42 @@ export default function LoginPresenter() {
         submitButton.textContent = "Memproses...";
 
         try {
-          // --- LOGIN LEWAT BACKEND ---
-          const result = await ApiService.login(email, password);
+          // --- PERBAIKAN UTAMA: Langsung panggil ApiService untuk login ---
+          // Tidak ada lagi pengecekan server atau interaksi langsung dengan Firebase.
+          const result = await ApiService.login({ email, password });
 
           if (result.success) {
+            // Jika login sukses dari backend, simpan data ke localStorage
+            ApiService.setSessionData(result.data.sessionId, result.data.user);
+
+            // Tampilkan notifikasi dan lanjutkan alur aplikasi
             window.dispatchEvent(
               new CustomEvent("userLoggedIn", { detail: result.data.user })
             );
             renderNavbar();
             showNotification("Login berhasil!", "success");
+
             setTimeout(() => {
               window.location.hash = "/dashboard";
             }, 1500);
           } else {
+            // Jika backend mengembalikan pesan error (misal: password salah)
             throw new Error(result.message || "Login gagal!");
           }
         } catch (error) {
-          handleLoginError(error);
+          // Menangani semua jenis error, termasuk error koneksi atau error dari backend
+          console.error("Login Error:", error);
+          showNotification(`❌ ${error.message}`, "error");
         } finally {
           submitButton.disabled = false;
           submitButton.textContent = "Masuk";
         }
       });
     }
+
+    // Logika untuk form reset password bisa tetap menggunakan Firebase langsung
+    // atau bisa juga direfaktor ke backend di kemudian hari.
+    const resetForm = document.getElementById("reset-password-form");
 
     // Logika untuk form reset password tidak berubah
     if (resetForm) {

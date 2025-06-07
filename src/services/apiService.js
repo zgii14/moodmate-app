@@ -1,45 +1,57 @@
 import CONFIG from "../config";
 // asynchronous function to call the backend API for mood prediction
 const ApiService = {
-  async login(email, password) {
-    const response = await fetch(
-      "https://backend-moodmate.up.railway.app/api/auth/login",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      }
-    );
-    const data = await response.json();
-    if (data.success) {
-      // Simpan sessionId dan user ke localStorage
-      localStorage.setItem("moodmate-session-id", data.data.sessionId);
-      localStorage.setItem("moodmate-current-user", data.data.user.email);
-    }
-    return data;
-  },
-  async register(name, email, password) {
-    const response = await fetch(
-      "https://backend-moodmate.up.railway.app/api/auth/register",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      }
-    );
-    return await response.json();
-  },
-  async logout() {
+  async makeRequest(endpoint, options = {}) {
     const sessionId = localStorage.getItem("moodmate-session-id");
-    await fetch("https://backend-moodmate.up.railway.app/api/auth/logout", {
+    const headers = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+    if (sessionId) {
+      headers["x-session-id"] = sessionId;
+    }
+
+    try {
+      const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+      return await response.json();
+    } catch (error) {
+      console.error(`API request failed for ${endpoint}:`, error);
+      return { success: false, message: "Tidak dapat terhubung ke server." };
+    }
+  },
+
+  // Fungsi untuk menyimpan data sesi setelah login berhasil
+  setSessionData(sessionId, user) {
+    localStorage.setItem("moodmate-session-id", sessionId);
+    localStorage.setItem("moodmate-current-user", JSON.stringify(user));
+    localStorage.setItem("moodmate-logged-in", "true");
+  },
+
+  // Endpoint untuk Login
+  async login({ email, password }) {
+    return this.makeRequest("/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-session-id": sessionId,
-      },
+      body: JSON.stringify({ email, password }),
     });
+  },
+
+  // Endpoint untuk Register
+  async register({ name, email, password }) {
+    return this.makeRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+    });
+  },
+
+  // Endpoint untuk Logout
+  async logout() {
+    await this.makeRequest("/auth/logout", { method: "POST" });
     localStorage.removeItem("moodmate-session-id");
     localStorage.removeItem("moodmate-current-user");
+    localStorage.removeItem("moodmate-logged-in");
   },
 
   async predictMood(text) {
