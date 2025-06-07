@@ -6,9 +6,6 @@ export default function ProfilPresenter() {
   const FILE_SIZE_LIMIT = 5 * 1024 * 1024;
   const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
 
-  let cachedProfilePhoto = null;
-  let isPhotoLoaded = false;
-
   const showToast = (message, type = "success") => {
     const existingToast = document.querySelector(".toast-notification");
     if (existingToast) existingToast.remove();
@@ -46,67 +43,62 @@ export default function ProfilPresenter() {
     }, 3000);
   };
 
-  const setLoadingState = (isLoading) => {
-    const changePhotoBtn = document.getElementById("change-photo-btn");
-    const resetPhotoBtn = document.getElementById("reset-photo-btn");
-    const photoOverlay = document.getElementById("photo-overlay");
+  // const setLoadingState = (isLoading) => {
+  //   const changePhotoBtn = document.getElementById("change-photo-btn");
+  //   const resetPhotoBtn = document.getElementById("reset-photo-btn");
+  //   const photoOverlay = document.getElementById("photo-overlay");
 
-    if (changePhotoBtn) {
-      changePhotoBtn.disabled = isLoading;
+  //   if (changePhotoBtn) {
+  //     changePhotoBtn.disabled = isLoading;
 
-      if (!changePhotoBtn.dataset.originalHtml) {
-        changePhotoBtn.dataset.originalHtml = changePhotoBtn.innerHTML;
-      }
+  //     if (!changePhotoBtn.dataset.originalHtml) {
+  //       changePhotoBtn.dataset.originalHtml = changePhotoBtn.innerHTML;
+  //     }
 
-      if (isLoading) {
-        changePhotoBtn.innerHTML = `
-        <svg class="w-5 h-5 inline-block mr-2 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        <span class="whitespace-nowrap">Memuat...</span>
-      `;
-      } else {
-        changePhotoBtn.innerHTML =
-          changePhotoBtn.dataset.originalHtml ||
-          `
-        <svg class="w-5 h-5 inline-block mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
-        <span class="whitespace-nowrap">Ubah Foto Profil</span>
-      `;
-      }
+  //     if (isLoading) {
+  //       changePhotoBtn.innerHTML = `
+  //       <svg class="w-5 h-5 inline-block mr-2 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+  //       </svg>
+  //       <span class="whitespace-nowrap">Memuat...</span>
+  //     `;
+  //     } else {
+  //       changePhotoBtn.innerHTML =
+  //         changePhotoBtn.dataset.originalHtml ||
+  //         `
+  //       <svg class="w-5 h-5 inline-block mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+  //       </svg>
+  //       <span class="whitespace-nowrap">Ubah Foto Profil</span>
+  //     `;
+  //     }
 
-      changePhotoBtn.offsetHeight;
-    }
+  //     changePhotoBtn.offsetHeight;
+  //   }
 
-    if (resetPhotoBtn) {
-      resetPhotoBtn.disabled = isLoading;
+  //   if (resetPhotoBtn) {
+  //     resetPhotoBtn.disabled = isLoading;
 
-      if (isLoading) {
-        resetPhotoBtn.style.opacity = "0.5";
-        resetPhotoBtn.style.pointerEvents = "none";
-      } else {
-        resetPhotoBtn.style.opacity = "";
-        resetPhotoBtn.style.pointerEvents = "";
-      }
-    }
+  //     if (isLoading) {
+  //       resetPhotoBtn.style.opacity = "0.5";
+  //       resetPhotoBtn.style.pointerEvents = "none";
+  //     } else {
+  //       resetPhotoBtn.style.opacity = "";
+  //       resetPhotoBtn.style.pointerEvents = "";
+  //     }
+  //   }
 
-    if (photoOverlay) {
-      photoOverlay.style.pointerEvents = isLoading ? "none" : "auto";
-    }
-  };
+  //   if (photoOverlay) {
+  //     photoOverlay.style.pointerEvents = isLoading ? "none" : "auto";
+  //   }
+  // };
 
-  const updateImageDisplay = (imageData, isInitialLoad = false) => {
+  const updateImageDisplay = (imageData) => {
     const profileImg = document.getElementById("profile-photo-preview");
     if (profileImg) {
       const newSrc = imageData || DEFAULT_PHOTO;
-
-      if (isInitialLoad) {
-        profileImg.src = newSrc;
-        isPhotoLoaded = true;
-      } else {
+      if (profileImg.src !== newSrc) {
         profileImg.style.opacity = "0.7";
-
         requestAnimationFrame(() => {
           profileImg.src = newSrc;
           requestAnimationFrame(() => {
@@ -400,24 +392,27 @@ export default function ProfilPresenter() {
   };
 
   const loadAndDisplayProfile = async () => {
+    console.log("Attempting to load and display profile...");
     try {
       const userData = await UserModel.refreshProfile();
-
       if (!userData) {
-        // UserModel.refreshProfile() sudah menangani logout jika sesi tidak valid.
-        throw new Error("Gagal memuat profil.");
+        throw new Error("Sesi tidak valid atau gagal memuat profil.");
       }
+      const displayNameEl = document.getElementById("display-name");
+      const displayEmailEl = document.getElementById("display-email");
+      const editNameInputEl = document.getElementById("edit-name");
 
-      // Mengisi tampilan profil
-      document.getElementById("display-name").textContent =
-        userData.name || "Pengguna";
-      document.getElementById("display-email").textContent =
-        userData.email || "Email";
-      updateImageDisplay(userData.profilePhoto);
-
-      // Mengisi form edit dengan data terbaru
-      const editNameInput = document.getElementById("edit-name");
-      if (editNameInput) editNameInput.value = userData.name || "";
+      if (displayNameEl && displayEmailEl) {
+        displayNameEl.textContent = userData.name || "Pengguna";
+        displayEmailEl.textContent = userData.email || "Email";
+        if (editNameInputEl) editNameInputEl.value = userData.name || "";
+        updateImageDisplay(userData.profilePhoto);
+        console.log("Profile data displayed successfully.");
+      } else {
+        console.error(
+          "Display elements not found! #display-name or #display-email is null."
+        );
+      }
     } catch (error) {
       console.error("Error displaying profile data:", error);
       showToast(error.message, "error");
@@ -531,63 +526,64 @@ export default function ProfilPresenter() {
   };
 
   const init = () => {
-    if (typeof document === "undefined") return;
+    console.log("ProfilPresenter init started.");
+    // Hapus penanda dari navigasi sebelumnya (jika ada)
+    delete document.body.dataset.profilPresenterInitialized;
 
-    // Fungsi yang akan menjalankan setup utama
     const runSetup = () => {
-      // Pastikan setup belum pernah dijalankan sebelumnya
-      if (document.body.dataset.presenterInitialized === "true") {
+      // Pastikan setup belum pernah dijalankan untuk halaman ini
+      if (document.body.dataset.profilPresenterInitialized === "true") {
+        console.log("ProfilPresenter setup already run. Skipping.");
         return;
       }
-      setupEventListeners();
+      console.log("Elements are ready. Running setup...");
+
+      // Semua logika inti ada di sini
+      setupEventListeners(); // Pastikan fungsi setupEventListeners ada di file ini
       loadAndDisplayProfile();
-      // Tandai bahwa setup sudah selesai untuk mencegah pemanggilan ganda
-      document.body.dataset.presenterInitialized = "true";
+
+      console.log("Setup complete.");
+      document.body.dataset.profilPresenterInitialized = "true";
     };
 
     const waitForElements = () => {
-      const requiredElements = [
-        "profile-photo-preview",
-        "change-photo-btn",
-        "edit-profile-btn",
+      const requiredIds = [
         "display-name",
+        "display-email",
+        "edit-profile-btn",
+        "profile-photo-preview",
       ];
-      return requiredElements.every((id) => document.getElementById(id));
+      const allExist = requiredIds.every((id) => document.getElementById(id));
+      if (!allExist) {
+        console.log(
+          "Waiting for elements...",
+          requiredIds.filter((id) => !document.getElementById(id))
+        );
+      }
+      return allExist;
     };
 
-    // Coba jalankan setup pertama kali
+    // Coba jalankan langsung
     if (waitForElements()) {
       runSetup();
       return;
     }
 
-    // Jika elemen belum ada, gunakan MutationObserver untuk menunggu
+    // Jika belum siap, gunakan MutationObserver
+    console.log("Elements not ready yet. Setting up MutationObserver.");
     const observer = new MutationObserver((mutations, obs) => {
       if (waitForElements()) {
+        console.log("Elements found by MutationObserver.");
         runSetup();
-        obs.disconnect(); // Hentikan observasi setelah setup berhasil
+        obs.disconnect(); // Penting: hentikan observasi setelah berhasil
       }
     });
 
-    // Mulai mengamati perubahan pada body
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
-
-    // Hapus penanda saat halaman berganti untuk memastikan presenter bisa inisialisasi ulang
-    window.addEventListener(
-      "hashchange",
-      () => {
-        delete document.body.dataset.presenterInitialized;
-      },
-      { once: true }
-    );
   };
 
   init();
-
-  return {
-    init,
-  };
 }
