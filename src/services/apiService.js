@@ -114,19 +114,9 @@ const ApiService = {
       };
     }
   },
+  // --- Endpoint Profil Pengguna (BARU & DIPERBARUI) ---
   async getProfile() {
-    const sessionId = localStorage.getItem("moodmate-session-id");
-    const response = await fetch(
-      "https://backend-moodmate.up.railway.app/api/auth/profile",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-session-id": sessionId,
-        },
-      }
-    );
-    return await response.json();
+    return this.makeRequest("/auth/profile", { method: "GET" });
   },
   async checkServerHealth() {
     try {

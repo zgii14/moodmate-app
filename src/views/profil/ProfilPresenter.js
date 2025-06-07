@@ -1,8 +1,5 @@
 import ApiService from "../../data/api.js";
 import { UserModel } from "../../models/UserModel.js";
-import { db } from "../../utils/firebase.js";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
-import bcrypt from "bcryptjs";
 
 export default function ProfilPresenter() {
   const DEFAULT_PHOTO = "/images/profile.png";
@@ -11,10 +8,6 @@ export default function ProfilPresenter() {
 
   let cachedProfilePhoto = null;
   let isPhotoLoaded = false;
-
-  const getCurrentUserEmail = () => {
-    return localStorage.getItem("moodmate-current-user");
-  };
 
   const showToast = (message, type = "success") => {
     const existingToast = document.querySelector(".toast-notification");
@@ -563,63 +556,57 @@ export default function ProfilPresenter() {
   };
 
   const handleSaveProfile = async () => {
+    setSaveButtonLoading(true);
     try {
-      setSaveButtonLoading(true);
-
-      const editNameInput = document.getElementById("edit-name");
-      const editPasswordInput = document.getElementById("edit-password");
-      const editPasswordConfirmInput = document.getElementById(
+      const newName = document.getElementById("edit-name").value.trim();
+      const newPassword = document.getElementById("edit-password").value;
+      const confirmPassword = document.getElementById(
         "edit-password-confirm"
-      );
+      ).value;
 
-      const newName = editNameInput?.value?.trim() || "";
-      const newPassword = editPasswordInput?.value || "";
-      const confirmPassword = editPasswordConfirmInput?.value || "";
+      // Validasi di frontend (tetap penting untuk User Experience)
+      if (!newName) throw new Error("Nama tidak boleh kosong.");
+      if (newPassword && newPassword !== confirmPassword)
+        throw new Error("Konfirmasi password tidak cocok.");
+      if (newPassword && newPassword.length < 6)
+        throw new Error("Password minimal 6 karakter.");
 
-      console.log("Form data:", { newName, hasPassword: !!newPassword });
-
-      const nameError = validateName(newName);
-      if (nameError) {
-        showToast(nameError, "error");
-        editNameInput?.focus();
-        return;
+      // Kirim update nama ke backend
+      const profileUpdateResult = await ApiService.updateProfile({
+        name: newName,
+      });
+      if (!profileUpdateResult.success) {
+        throw new Error(
+          profileUpdateResult.message || "Gagal memperbarui nama."
+        );
       }
 
-      if (newPassword || confirmPassword) {
-        const passwordError = validatePassword(newPassword, confirmPassword);
-        if (passwordError) {
-          showToast(passwordError, "error");
-          editPasswordInput?.focus();
-          return;
+      // Jika ada password baru, kirim juga ke backend (tanpa hashing di sini!)
+      if (newPassword) {
+        // Backend akan meminta password saat ini untuk keamanan
+        const currentPassword = prompt(
+          "Untuk keamanan, masukkan password lama Anda:"
+        );
+        if (!currentPassword) {
+          throw new Error("Password lama diperlukan untuk mengubah password.");
+        }
+        const passwordUpdateResult = await ApiService.changePassword({
+          currentPassword,
+          newPassword,
+        });
+        if (!passwordUpdateResult.success) {
+          throw new Error(
+            passwordUpdateResult.message || "Gagal mengubah password."
+          );
         }
       }
 
-      const updateData = {
-        name: newName,
-      };
-
-      if (newPassword) {
-        updateData.password = newPassword;
-      }
-
-      console.log("Updating profile with data:", updateData);
-
-      await updateUserProfile(updateData);
-
-      const displayNameElement = document.getElementById("display-name");
-      if (displayNameElement) {
-        displayNameElement.textContent = newName;
-      }
-
-      updateLastModified();
-
-      clearEditForm();
-      toggleEditMode(false);
-
-      showToast("Profil berhasil diperbarui!");
+      showToast("Profil berhasil diperbarui!", "success");
+      await loadAndDisplayProfile(); // Muat ulang data profil yang baru dari backend
+      toggleEditMode(false); // Kembali ke mode lihat
     } catch (error) {
       console.error("Error saving profile:", error);
-      showToast("Gagal memperbarui profil: " + error.message, "error");
+      showToast(`Gagal: ${error.message}`, "error");
     } finally {
       setSaveButtonLoading(false);
     }
@@ -653,72 +640,35 @@ export default function ProfilPresenter() {
 
   const loadAndDisplayProfile = async () => {
     try {
-      const userData = await loadUserProfile();
+      // 1. Ambil data profil HANYA dari backend melalui ApiService
+      const result = await ApiService.getProfile();
 
-      const displayNameElement = document.getElementById("display-name");
-      if (displayNameElement) {
-        displayNameElement.textContent = userData.name || "Nama tidak tersedia";
+      if (!result || !result.success) {
+        throw new Error(result.message || "Gagal memuat data profil.");
       }
+
+      const userData = result.data.user;
+
+      // 2. Update elemen-elemen di halaman dengan data dari backend
+      const displayNameElement = document.getElementById("display-name");
+      if (displayNameElement)
+        displayNameElement.textContent = userData.name || "Nama tidak tersedia";
 
       const displayEmailElement = document.getElementById("display-email");
-      if (displayEmailElement) {
+      if (displayEmailElement)
         displayEmailElement.textContent =
           userData.email || "Email tidak tersedia";
-      }
 
-      const lastUpdatedElement = document.getElementById("last-updated");
-      if (lastUpdatedElement) {
-        let updateDateText = "-";
+      updateImageDisplay(userData.profilePhoto, true);
 
-        const dateToShow = userData.updatedAt || userData.createdAt;
-
-        if (dateToShow) {
-          try {
-            const date = new Date(dateToShow);
-            if (!isNaN(date.getTime())) {
-              updateDateText = date.toLocaleDateString("id-ID", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-            }
-          } catch (e) {
-            console.error("Error formatting date:", e);
-          }
-        }
-
-        lastUpdatedElement.textContent = updateDateText;
-      }
-
-      console.log("Profile data loaded successfully:", {
-        name: userData.name,
-        email: userData.email,
-        hasPhoto: !!userData.profilePhoto,
-        createdAt: userData.createdAt,
-        updatedAt: userData.updatedAt,
-      });
+      // Update data di localStorage untuk konsistensi
+      UserModel.setCurrentUser(userData);
     } catch (error) {
       console.error("Error loading profile data:", error);
-      showToast("Gagal memuat data profil", "error");
-
-      try {
-        const localUser = JSON.parse(localStorage.getItem("moodmate-user"));
-        if (localUser) {
-          const displayNameElement = document.getElementById("display-name");
-          if (displayNameElement) {
-            displayNameElement.textContent =
-              localUser.name || "Nama tidak tersedia";
-          }
-
-          const lastUpdatedElement = document.getElementById("last-updated");
-          if (lastUpdatedElement) {
-            lastUpdatedElement.textContent = "-";
-          }
-        }
-      } catch (localError) {
-        console.error("Failed to fallback to localStorage:", localError);
+      showToast(error.message, "error");
+      // Jika session tidak valid, UserModel akan otomatis logout
+      if (error.message.includes("Session tidak valid")) {
+        UserModel.logout();
       }
     }
   };
