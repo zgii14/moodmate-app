@@ -1,4 +1,4 @@
-import ApiService from "../../data/api.js";
+import ApiService from "../../services/apiService.js";
 import { UserModel } from "../../models/UserModel.js";
 
 export default function ProfilPresenter() {
@@ -400,10 +400,13 @@ export default function ProfilPresenter() {
   const loadAndDisplayProfile = async () => {
     console.log("Attempting to load and display profile...");
     try {
-      const userData = await UserModel.refreshProfile();
+      // Panggil API melalui UserModel
+      const userData = await UserModel.getProfile();
+      
       if (!userData) {
-        throw new Error("Sesi tidak valid atau gagal memuat profil.");
+        throw new Error("Gagal memuat profil pengguna");
       }
+
       const displayNameEl = document.getElementById("display-name");
       const displayEmailEl = document.getElementById("display-email");
       const editNameInputEl = document.getElementById("edit-name");
@@ -412,12 +415,12 @@ export default function ProfilPresenter() {
         displayNameEl.textContent = userData.name || "Pengguna";
         displayEmailEl.textContent = userData.email || "Email";
         if (editNameInputEl) editNameInputEl.value = userData.name || "";
+        
+        // Gunakan profilePhoto dari userData atau default
         updateImageDisplay(userData.profilePhoto);
         console.log("Profile data displayed successfully.");
       } else {
-        console.error(
-          "Display elements not found! #display-name or #display-email is null."
-        );
+        console.error("Display elements not found!");
       }
     } catch (error) {
       console.error("Error displaying profile data:", error);
