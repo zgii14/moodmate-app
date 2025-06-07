@@ -1,7 +1,8 @@
+import { renderNavbar } from "../../components/Navbar";
+import { login } from "../../services/apiService";
+import bcrypt from "bcryptjs";
 import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { renderNavbar } from "../../components/Navbar";
-import bcrypt from "bcryptjs";
 
 // Fungsi generateCaptcha dan showNotification tidak berubah
 function generateCaptcha() {
@@ -167,73 +168,21 @@ export default function LoginPresenter() {
         submitButton.textContent = "Memproses...";
 
         try {
-          // --- PERBAIKAN: Menghapus pengecekan server yang tidak relevan ---
-          // const isServerAvailable = await checkServerAvailability();
-          // if (!isServerAvailable) {
-          //   throw new Error(
-          //     "Server tidak tersedia. Pastikan server berjalan di localhost:9000",
-          //   );
-          // }
-          // ---------------------------------------------------------------
+          // --- LOGIN LEWAT BACKEND ---
+          const result = await login(email, password);
 
-          const userRef = doc(db, "users", email);
-          const userDoc = await getDoc(userRef);
-
-          if (!userDoc.exists()) {
-            throw new Error("Email tidak terdaftar!");
+          if (result.success) {
+            window.dispatchEvent(
+              new CustomEvent("userLoggedIn", { detail: result.data.user })
+            );
+            renderNavbar();
+            showNotification("Login berhasil!", "success");
+            setTimeout(() => {
+              window.location.hash = "/dashboard";
+            }, 1500);
+          } else {
+            throw new Error(result.message || "Login gagal!");
           }
-
-          const userData = userDoc.data();
-          const isPasswordValid = await bcrypt.compare(
-            password,
-            userData.password
-          );
-
-          if (!isPasswordValid) {
-            throw new Error("Password salah!");
-          }
-
-          const sessionId = `firestore_session_${Date.now()}_${Math.random()
-            .toString(36)
-            .substr(2, 9)}`;
-
-          await setDoc(
-            userRef,
-            {
-              lastLogin: serverTimestamp(),
-              sessionId: sessionId,
-            },
-            { merge: true }
-          );
-
-          const userDataForStorage = {
-            email: userData.email,
-            name: userData.name,
-            joined:
-              userData.createdAt?.toDate()?.toISOString() ||
-              new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            sessionId: sessionId,
-            authSource: "firestore",
-          };
-
-          localStorage.setItem(
-            "moodmate-user",
-            JSON.stringify(userDataForStorage)
-          );
-          localStorage.setItem("moodmate-logged-in", "true");
-          localStorage.setItem("moodmate-current-user", userData.email);
-          localStorage.setItem("moodmate-session-id", sessionId);
-
-          window.dispatchEvent(
-            new CustomEvent("userLoggedIn", { detail: userDataForStorage })
-          );
-          renderNavbar();
-          showNotification("Login berhasil!", "success");
-
-          setTimeout(() => {
-            window.location.hash = "/dashboard";
-          }, 1500);
         } catch (error) {
           handleLoginError(error);
         } finally {
@@ -357,7 +306,3 @@ function handleLoginError(error) {
     "error"
   );
 }
-
-// --- FUNGSI INI SEHARUSNYA DIHAPUS ---
-// async function checkServerAvailability() { ... }
-// -------------------------------------

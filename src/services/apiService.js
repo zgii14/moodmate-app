@@ -1,6 +1,47 @@
 import CONFIG from "../config";
 // asynchronous function to call the backend API for mood prediction
 const ApiService = {
+  async login(email, password) {
+    const response = await fetch(
+      "https://backend-moodmate.up.railway.app/api/auth/login",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }
+    );
+    const data = await response.json();
+    if (data.success) {
+      // Simpan sessionId dan user ke localStorage
+      localStorage.setItem("moodmate-session-id", data.data.sessionId);
+      localStorage.setItem("moodmate-current-user", data.data.user.email);
+    }
+    return data;
+  },
+  async register(name, email, password) {
+    const response = await fetch(
+      "https://backend-moodmate.up.railway.app/api/auth/register",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      }
+    );
+    return await response.json();
+  },
+  async logout() {
+    const sessionId = localStorage.getItem("moodmate-session-id");
+    await fetch("https://backend-moodmate.up.railway.app/api/auth/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-session-id": sessionId,
+      },
+    });
+    localStorage.removeItem("moodmate-session-id");
+    localStorage.removeItem("moodmate-current-user");
+  },
+
   async predictMood(text) {
     try {
       const sessionId = localStorage.getItem("moodmate-session-id"); // Ambil sessionId
@@ -61,7 +102,20 @@ const ApiService = {
       };
     }
   },
-
+  async getProfile() {
+    const sessionId = localStorage.getItem("moodmate-session-id");
+    const response = await fetch(
+      "https://backend-moodmate.up.railway.app/api/auth/profile",
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": sessionId,
+        },
+      }
+    );
+    return await response.json();
+  },
   async checkServerHealth() {
     try {
       const response = await fetch(`${CONFIG.BASE_URL}/health`, {

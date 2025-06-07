@@ -1,91 +1,19 @@
 const Hapi = require("@hapi/hapi");
 const Bcrypt = require("bcryptjs");
 const fetch = require("node-fetch");
-const fs = require("fs").promises;
-const path = require("path");
-const { db, serverTimestamp } = require("./utilserver/firebaseAdmin.js");
+const { db } = require("./utilserver/firebaseAdmin.js"); // Pastikan ini sudah benar
+
 let users = [];
-let sessions = new Map();
 let journalEntries = [];
 let idCounter = 1;
 
+// Helper
 const generateId = () => `id_${Date.now()}_${idCounter++}`;
 const getCurrentDate = () => new Date().toISOString();
+const generateSessionId = () =>
+  `firestore_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-const generateSessionId = () => {
-  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
-const loadData = async () => {
-  try {
-    await ensureDataDirectory(); // Opsional kalau kamu masih butuh
-
-    // Load users (kalau belum dimasukkan)
-    const userSnapshot = await db.collection("users").get();
-    users = userSnapshot.docs.map((doc) => doc.data());
-
-    const journalSnapshot = await db.collection("journals").get();
-    journalEntries = journalSnapshot.docs.map((doc) => doc.data());
-    console.log("✅ Journals loaded from Firestore:", journalEntries.length);
-
-    // Update idCounter supaya tetap unik
-    const allIds = [
-      ...users.map((u) => u.id),
-      ...journalEntries.map((j) => j.id),
-    ];
-
-    if (allIds.length > 0) {
-      const maxId = Math.max(
-        ...allIds.map((id) => {
-          const match = id.match(/id_\d+_(\d+)/);
-          return match ? parseInt(match[1]) : 0;
-        })
-      );
-      idCounter = maxId + 1;
-    }
-  } catch (error) {
-    console.error("❌ Error loading data from Firestore:", error);
-  }
-};
-
-const saveUsers = async () => {
-  try {
-    const userCollection = collection(db, "users");
-
-    for (const user of users) {
-      await db
-        .collection("users")
-        .doc(user.id)
-        .set({
-          ...user,
-          updatedAt: new Date().toISOString(), // atau gunakan admin.firestore.FieldValue.serverTimestamp() jika ingin timestamp Firestore
-        });
-    }
-
-    console.log("✅ Users saved to Firestore");
-  } catch (error) {
-    console.error("❌ Error saving users to Firestore:", error);
-  }
-};
-
-const saveJournals = async () => {
-  try {
-    const journalCollection = collection(db, "journals");
-    for (const journal of journalEntries) {
-      await db
-        .collection("journals")
-        .doc(journal.id)
-        .set({
-          ...journal,
-          updatedAt: new Date().toISOString(),
-        });
-    }
-    console.log("✅ Journals saved to Firestore");
-  } catch (error) {
-    console.error("❌ Error saving journals to Firestore:", error);
-  }
-};
-// Tambahkan di atas/before: const init = async () => {
+// Firestore Session Helpers
 const SESSION_COLLECTION = "sessions";
 
 // Simpan session ke Firestore
@@ -103,6 +31,84 @@ async function getSessionFromFirestore(sessionId) {
 async function deleteSessionFromFirestore(sessionId) {
   await db.collection(SESSION_COLLECTION).doc(sessionId).delete();
 }
+
+// Load data users & journals dari Firestore (bukan session)
+const loadData = async () => {
+  try {
+    const userSnapshot = await db.collection("users").get();
+    users = userSnapshot.docs.map((doc) => doc.data());
+
+    const journalSnapshot = await db.collection("journals").get();
+    journalEntries = journalSnapshot.docs.map((doc) => doc.data());
+
+    // Update idCounter supaya tetap unik
+    const allIds = [
+      ...users.map((u) => u.id),
+      ...journalEntries.map((j) => j.id),
+    ];
+    if (allIds.length > 0) {
+      const maxId = Math.max(
+        ...allIds.map((id) => {
+          const match = id.match(/id_\d+_(\d+)/);
+          return match ? parseInt(match[1]) : 0;
+        })
+      );
+      idCounter = maxId + 1;
+    }
+  } catch (error) {
+    console.error("❌ Error loading data from Firestore:", error);
+  }
+};
+
+// Simpan users ke Firestore
+const saveUsers = async () => {
+  try {
+    for (const user of users) {
+      await db
+        .collection("users")
+        .doc(user.id)
+        .set({
+          ...user,
+          updatedAt: getCurrentDate(),
+        });
+    }
+    console.log("✅ Users saved to Firestore");
+  } catch (error) {
+    console.error("❌ Error saving users to Firestore:", error);
+  }
+};
+
+// Simpan journals ke Firestore
+const saveJournals = async () => {
+  try {
+    for (const journal of journalEntries) {
+      await db
+        .collection("journals")
+        .doc(journal.id)
+        .set({
+          ...journal,
+          updatedAt: getCurrentDate(),
+        });
+    }
+    console.log("✅ Journals saved to Firestore");
+  } catch (error) {
+    console.error("❌ Error saving journals to Firestore:", error);
+  }
+};
+// Tambahkan di atas/before: const init = async () => {
+// Session validator (ambil dari Firestore)
+const validateSession = async (request) => {
+  const sessionId = request.headers["x-session-id"];
+  if (!sessionId) return null;
+  const session = await getSessionFromFirestore(sessionId);
+  console.log(
+    "SessionId diterima:",
+    sessionId,
+    "Session ditemukan?",
+    !!session
+  );
+  return session;
+};
 const init = async () => {
   await loadData();
 
@@ -111,9 +117,15 @@ const init = async () => {
     host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ["https://moodmate.up.railway.app"], // GANTI * -> domain frontend
-        credentials: true, // WAJIB agar cookie/session dikirim
-        headers: ["Accept", "Content-Type", "If-None-Match", "X-Session-ID"],
+        origin: ["https://moodmate.up.railway.app"],
+        credentials: true,
+        headers: [
+          "Accept",
+          "Content-Type",
+          "If-None-Match",
+          "X-Session-ID",
+          "x-session-id",
+        ],
         exposedHeaders: ["WWW-Authenticate", "Server-Authorization"],
         additionalExposedHeaders: ["Accept"],
         maxAge: 60,
@@ -122,53 +134,33 @@ const init = async () => {
     },
   });
 
-  const validateSession = async (request) => {
-    const sessionId = request.headers["x-session-id"];
-    if (!sessionId) return null;
-    const session = await getSessionFromFirestore(sessionId);
-    console.log(
-      "SessionId diterima:",
-      sessionId,
-      "Session ditemukan?",
-      !!session
-    );
-    return session;
-  };
-
+  // Health check
   server.route({
     method: "GET",
     path: "/api/health",
-    handler: (request, h) => {
-      return {
-        status: "OK",
-        message: "MoodMate Auth API is running",
-        timestamp: getCurrentDate(),
-        stats: {
-          users: users.length,
-          journals: journalEntries.length,
-          sessions: sessions.size,
-        },
-      };
-    },
+    handler: (request, h) => ({
+      status: "OK",
+      message: "MoodMate Auth API is running",
+      timestamp: getCurrentDate(),
+      stats: {
+        users: users.length,
+        journals: journalEntries.length,
+      },
+    }),
   });
 
+  // Register
   server.route({
     method: "POST",
     path: "/api/auth/register",
     handler: async (request, h) => {
       const { name, email, password } = request.payload;
-
       if (users.find((u) => u.email === email)) {
         return h
-          .response({
-            success: false,
-            message: "Email sudah terdaftar",
-          })
+          .response({ success: false, message: "Email sudah terdaftar" })
           .code(400);
       }
-
       const hashedPassword = await Bcrypt.hash(password, 10);
-
       const user = {
         id: generateId(),
         name,
@@ -176,10 +168,8 @@ const init = async () => {
         password: hashedPassword,
         createdAt: getCurrentDate(),
       };
-
       users.push(user);
       await saveUsers();
-
       return {
         success: true,
         message: "User berhasil didaftarkan",
@@ -192,6 +182,7 @@ const init = async () => {
     },
   });
 
+  // Login
   server.route({
     method: "POST",
     path: "/api/auth/login",
@@ -235,53 +226,51 @@ const init = async () => {
     },
   });
 
+  // Logout
+  server.route({
+    method: "POST",
+    path: "/api/auth/logout",
+    handler: async (request, h) => {
+      const sessionId = request.headers["x-session-id"];
+      if (sessionId) {
+        await deleteSessionFromFirestore(sessionId);
+      }
+      return {
+        success: true,
+        message: "Logout berhasil",
+      };
+    },
+  });
+  // Profile
   server.route({
     method: "GET",
     path: "/api/auth/profile",
     handler: async (request, h) => {
-      try {
-        const session = await validateSession(request);
-        if (!session) {
-          return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
-            .code(401);
-        }
-
-        const user = users.find((u) => u.id === session.userId);
-        if (!user) {
-          return h
-            .response({
-              success: false,
-              message: "User tidak ditemukan",
-            })
-            .code(404);
-        }
-
-        return {
-          success: true,
-          message: "Profil berhasil diambil",
-          data: {
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              createdAt: user.createdAt,
-              updatedAt: user.updatedAt,
-            },
-          },
-        };
-      } catch (error) {
-        console.error("Get profile error:", error);
+      const session = await validateSession(request);
+      if (!session) {
         return h
-          .response({
-            success: false,
-            message: "Gagal mengambil profil",
-          })
-          .code(500);
+          .response({ success: false, message: "Session tidak valid" })
+          .code(401);
       }
+      const user = users.find((u) => u.id === session.userId);
+      if (!user) {
+        return h
+          .response({ success: false, message: "User tidak ditemukan" })
+          .code(404);
+      }
+      return {
+        success: true,
+        message: "Profil berhasil diambil",
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          },
+        },
+      };
     },
   });
 
@@ -801,8 +790,6 @@ const init = async () => {
         // Menjadi ini (menggunakan environment variable):
         const mlApiUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
         const mlResponse = await fetch(`${mlApiUrl}/predict`, {
-          // <-- MENJADI SEPERTI INI
-          // ...
 
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -833,21 +820,9 @@ const init = async () => {
     },
   });
 
-  server.route({
-    method: "POST",
-    path: "/api/auth/logout",
-    handler: async (request, h) => {
-      const sessionId = request.headers["x-session-id"];
-      if (sessionId) {
-        await deleteSessionFromFirestore(sessionId);
-      }
-      return {
-        success: true,
-        message: "Logout berhasil",
-      };
-    },
-  });
 
+
+ // Graceful shutdown
   const gracefulShutdown = async () => {
     console.log("\nGraceful shutdown initiated...");
     try {

@@ -1,12 +1,5 @@
-import {
-  getAccessToken,
-  removeAccessToken,
-  isAuthenticated,
-  decodeToken,
-  isTokenExpired,
-} from "../utils/auth.js";
 import ApiService from "../data/api.js";
-
+import { logout as apiLogout } from "../services/apiService";
 export const UserModel = {
   getCurrent() {
     try {
@@ -42,7 +35,8 @@ export const UserModel = {
 
   async getProfile() {
     try {
-      if (!isAuthenticated()) {
+      const sessionId = localStorage.getItem("moodmate-session-id");
+      if (!sessionId) {
         console.warn("User not authenticated, cannot get profile");
         return null;
       }
@@ -89,7 +83,7 @@ export const UserModel = {
       } catch (storageError) {
         console.error(
           "Failed to save user data to localStorage:",
-          storageError,
+          storageError
         );
       }
 
@@ -105,13 +99,11 @@ export const UserModel = {
     }
   },
 
-  logout() {
+  async logout() {
     try {
-      removeAccessToken();
+      await apiLogout(); // panggil endpoint backend
       this.cleanupInvalidSession();
-
       location.hash = "/login";
-
       console.log("User logged out successfully");
     } catch (error) {
       console.error("Error during logout:", error);
@@ -121,12 +113,12 @@ export const UserModel = {
 
   cleanupInvalidSession() {
     try {
+      localStorage.removeItem("moodmate-session-id");
       localStorage.removeItem("moodmate-logged-in");
       localStorage.removeItem("moodmate-current-user");
       localStorage.removeItem("moodmate-user");
       localStorage.removeItem("profile_photo");
       localStorage.removeItem("temp-user-data");
-
       console.log("Invalid session cleaned up");
     } catch (error) {
       console.error("Error during session cleanup:", error);
@@ -134,33 +126,13 @@ export const UserModel = {
   },
 
   isLoggedIn() {
-    try {
-      const hasValidToken = isAuthenticated();
-
-      if (!hasValidToken) {
-        this.cleanupInvalidSession();
-        return false;
-      }
-
-      const userData = this.getCurrent();
-      if (!userData || !userData.email) {
-        this.cleanupInvalidSession();
-        return false;
-      }
-
-      const token = getAccessToken();
-      if (token && isTokenExpired(token)) {
-        console.warn("Token has expired");
-        this.logout();
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error checking login status:", error);
+    const sessionId = localStorage.getItem("moodmate-session-id");
+    const userData = this.getCurrent();
+    if (!sessionId || !userData || !userData.email) {
       this.cleanupInvalidSession();
       return false;
     }
+    return true;
   },
 
   setCurrentUser(userData) {
@@ -214,7 +186,7 @@ export const UserModel = {
 
       console.log(
         "User data updated successfully in localStorage:",
-        updatedUser,
+        updatedUser
       );
       return true;
     } catch (error) {
@@ -272,41 +244,16 @@ export const UserModel = {
 
   async validateSession() {
     try {
-      const token = getAccessToken();
-
-      if (!token) {
-        console.warn("No access token found");
+      const sessionId = localStorage.getItem("moodmate-session-id");
+      if (!sessionId) {
         this.logout();
         return false;
       }
-
-      const tokenParts = token.split(".");
-      if (tokenParts.length !== 3) {
-        console.error("Invalid token format");
-        this.logout();
-        return false;
-      }
-
-      if (isTokenExpired(token)) {
-        console.warn("Token has expired");
-        this.logout();
-        return false;
-      }
-
       const profile = await this.getProfile();
-
-      if (!profile) {
-        console.error("Failed to get profile, session invalid");
+      if (!profile || !profile.email) {
         this.logout();
         return false;
       }
-
-      if (!profile.email) {
-        console.error("Profile data invalid, no email found");
-        this.logout();
-        return false;
-      }
-
       console.log("Session validation successful");
       return true;
     } catch (error) {
@@ -395,8 +342,6 @@ export const UserModel = {
     try {
       localStorage.clear();
 
-      removeAccessToken();
-
       location.hash = "/login";
 
       console.log("Force logout completed");
@@ -409,15 +354,11 @@ export const UserModel = {
 
   async checkSessionHealth() {
     try {
-      const token = getAccessToken();
-      if (!token) return { healthy: false, reason: "No token" };
-
-      if (isTokenExpired(token))
-        return { healthy: false, reason: "Token expired" };
+      const sessionId = localStorage.getItem("moodmate-session-id");
+      if (!sessionId) return { healthy: false, reason: "No sessionId" };
 
       const userData = this.getCurrent();
       if (!userData) return { healthy: false, reason: "No user data" };
-
       if (!userData.email)
         return { healthy: false, reason: "Invalid user data" };
 

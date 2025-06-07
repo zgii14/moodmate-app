@@ -4,13 +4,9 @@
 import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import bcrypt from "bcryptjs";
+import { register } from "../../services/apiService";
 
 export default function RegisterPresenter() {
-  async function hashPassword(password) {
-    const saltRounds = 12;
-    return await bcrypt.hash(password, saltRounds);
-  }
-
   function showNotification(message, type = "info") {
     // ... (Fungsi notifikasi Anda, tidak ada perubahan di sini)
     const existingNotifications = document.querySelectorAll(
@@ -92,7 +88,7 @@ export default function RegisterPresenter() {
         const confirmPassword = document.getElementById("reg-confirm").value;
         const submitButton = form.querySelector('button[type="submit"]');
 
-        // ... (Validasi input Anda, tidak ada perubahan di sini)
+        // Validasi input
         if (!name) {
           showNotification("❌ Nama tidak boleh kosong!", "warning");
           return;
@@ -119,69 +115,26 @@ export default function RegisterPresenter() {
         submitButton.textContent = "Mendaftar...";
 
         try {
-          // --- BAGIAN INI TELAH DIHAPUS ---
-          // const isServerAvailable = await checkServerAvailability();
-          // if (!isServerAvailable) {
-          //   throw new Error(
-          //     "Server tidak tersedia. Pastikan server berjalan di localhost:9000",
-          //   );
-          // }
-          // ------------------------------------
+          // --- REGISTER LEWAT BACKEND ---
+          const result = await register(name, email, password);
 
-          const userRef = doc(db, "users", email);
-          const userDoc = await getDoc(userRef);
-
-          if (userDoc.exists()) {
-            throw new Error(
-              "Email sudah terdaftar! Silakan gunakan email lain."
-            );
+          if (result.success) {
+            showNotification("Registrasi berhasil! Silakan login.", "success");
+            form.reset();
+            setTimeout(() => {
+              window.location.hash = "/login";
+            }, 1500);
+          } else {
+            throw new Error(result.message || "Registrasi gagal!");
           }
-
-          // PERINGATAN KEAMANAN: Password tidak seharusnya di-hash di sisi client.
-          // Ini rentan terhadap serangan. Sebaiknya gunakan Firebase Authentication.
-          const hashedPassword = await hashPassword(password);
-
-          const registrationId = `firestore_reg_${Date.now()}_${Math.random()
-            .toString(36)
-            .substr(2, 9)}`;
-
-          await setDoc(userRef, {
-            name: name,
-            email: email,
-            password: hashedPassword,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            lastLogin: null,
-            isActive: true,
-            registrationSource: "firestore",
-            registrationId: registrationId,
-            sessionId: null,
-          });
-
-          showNotification("Registrasi berhasil! Silakan login.", "success");
-
-          form.reset();
-
-          setTimeout(() => {
-            window.location.hash = "/login";
-          }, 1500);
         } catch (error) {
-          console.error("Registration Error:", error);
-
-          // Logika penanganan error Anda, tidak ada perubahan di sini
-          if (error.message.includes("Email sudah terdaftar")) {
+          // Penanganan error
+          if (
+            error.message.includes("Email sudah terdaftar") ||
+            (error.response && error.response.status === 400)
+          ) {
             showNotification(
               "❌ Email sudah terdaftar! Silakan gunakan email lain atau login.",
-              "error"
-            );
-          } else if (error.code === "permission-denied") {
-            showNotification(
-              "❌ Akses ditolak. Periksa aturan Firestore.",
-              "error"
-            );
-          } else if (error.code === "unavailable") {
-            showNotification(
-              "❌ Koneksi database bermasalah. Coba lagi nanti.",
               "error"
             );
           } else {

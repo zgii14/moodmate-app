@@ -1,6 +1,6 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../utils/firebase.js";
-
+import { logout as apiLogout } from "../services/apiService";
 export const renderNavbar = () => {
   const app = document.getElementById("app");
   let nav = app.querySelector("nav");
@@ -256,10 +256,21 @@ export const renderNavbar = () => {
   const setupLogout = (buttonId) => {
     const logoutBtn = document.getElementById(buttonId);
     if (logoutBtn) {
-      logoutBtn.addEventListener("click", (e) => {
+      logoutBtn.addEventListener("click", async (e) => {
         e.preventDefault();
+        try {
+          await apiLogout(); // Panggil endpoint backend
+        } catch (error) {
+          // Optional: tampilkan notifikasi error
+          console.error("Logout error:", error);
+        }
+        // Bersihkan localStorage
+        localStorage.removeItem("moodmate-session-id");
         localStorage.removeItem("moodmate-logged-in");
         localStorage.removeItem("moodmate-current-user");
+        localStorage.removeItem("moodmate-user");
+        localStorage.removeItem("profile_photo");
+        localStorage.removeItem("temp-user-data");
         toggleMobileMenu(false);
         window.location.hash = "/login";
         setTimeout(() => renderNavbar(), 100);
