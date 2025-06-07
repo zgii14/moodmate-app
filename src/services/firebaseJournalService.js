@@ -1,5 +1,6 @@
-import { db, serverTimestamp } from "../utils/firebase.js";
-import {
+import { 
+  db, 
+  serverTimestamp,
   collection,
   addDoc,
   getDocs,
@@ -9,7 +10,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-} from "firebase/firestore";
+} from "../utils/firebase.js";
 import { getRandomActivities } from "../data/moodActivities";
 import { getRandomSongs } from "../data/moodSongs";
 
