@@ -164,26 +164,31 @@ export default function ProfilPresenter() {
         return;
       }
 
+      const userEmail = UserModel.getCurrentUserEmail();
+      if (!userEmail) {
+        showToast("User tidak terautentikasi", "error");
+        return;
+      }
+
       setLoadingState(true);
 
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const imageData = e.target.result;
-          const result = await ApiService.updateProfilePhoto(imageData);
 
+          // --- BAGIAN YANG DIUBAH ---
+          const result = await ApiService.updateProfilePhoto(imageData);
           if (!result.success) {
             throw new Error(result.message || "Gagal mengunggah foto.");
           }
+          // --- AKHIR BAGIAN YANG DIUBAH ---
 
           updateImageDisplay(imageData);
-          UserModel.updateProfilePhoto(imageData);
+          UserModel.updateProfilePhoto(imageData); // Tetap update localStorage
           hidePhotoModal();
           showToast("Foto profil berhasil diperbarui!");
           updateLastModified();
-
-          // --- LETAKKAN DI SINI ---
-          window.dispatchEvent(new Event("userProfileChanged"));
         } catch (error) {
           console.error("Error uploading photo:", error);
           showToast("Gagal menyimpan foto profil: " + error.message, "error");
@@ -192,6 +197,7 @@ export default function ProfilPresenter() {
           event.target.value = "";
         }
       };
+
       reader.readAsDataURL(file);
     } catch (error) {
       console.error("Unexpected error in handlePhotoUpload:", error);
@@ -250,19 +256,19 @@ export default function ProfilPresenter() {
   const resetToDefault = async () => {
     try {
       setLoadingState(true);
+      // --- BAGIAN YANG DIUBAH ---
+      // Kita akan buat fungsi ini di ApiService selanjutnya
       const result = await ApiService.resetProfilePhoto();
       if (!result.success) {
         throw new Error(result.message || "Gagal mereset foto.");
       }
+      // --- AKHIR BAGIAN YANG DIUBAH ---
 
       UserModel.updateProfilePhoto(null);
       updateImageDisplay(null);
       hidePhotoModal();
       showToast("Foto profil berhasil direset ke default!");
       updateLastModified();
-
-      // --- LETAKKAN DI SINI JUGA ---
-      window.dispatchEvent(new Event("userProfileChanged"));
     } catch (error) {
       console.error("Error resetting profile photo:", error);
       showToast("Gagal mereset foto profil. Silakan coba lagi.", "error");
@@ -526,24 +532,18 @@ export default function ProfilPresenter() {
   };
 
   const init = () => {
-    console.log("ProfilPresenter init started.");
-    // Hapus penanda dari navigasi sebelumnya (jika ada)
-    delete document.body.dataset.profilPresenterInitialized;
+    if (typeof document === "undefined") return;
 
+    // Fungsi yang akan menjalankan setup utama
     const runSetup = () => {
-      // Pastikan setup belum pernah dijalankan untuk halaman ini
-      if (document.body.dataset.profilPresenterInitialized === "true") {
-        console.log("ProfilPresenter setup already run. Skipping.");
+      // Pastikan setup belum pernah dijalankan sebelumnya
+      if (document.body.dataset.presenterInitialized === "true") {
         return;
       }
-      console.log("Elements are ready. Running setup...");
-
-      // Semua logika inti ada di sini
-      setupEventListeners(); // Pastikan fungsi setupEventListeners ada di file ini
+      setupEventListeners();
       loadAndDisplayProfile();
-
-      console.log("Setup complete.");
-      document.body.dataset.profilPresenterInitialized = "true";
+      // Tandai bahwa setup sudah selesai untuk mencegah pemanggilan ganda
+      document.body.dataset.presenterInitialized = "true";
     };
 
     const waitForElements = () => {
@@ -563,26 +563,34 @@ export default function ProfilPresenter() {
       return allExist;
     };
 
-    // Coba jalankan langsung
+    // Coba jalankan setup pertama kali
     if (waitForElements()) {
       runSetup();
       return;
     }
 
-    // Jika belum siap, gunakan MutationObserver
-    console.log("Elements not ready yet. Setting up MutationObserver.");
+    // Jika elemen belum ada, gunakan MutationObserver untuk menunggu
     const observer = new MutationObserver((mutations, obs) => {
       if (waitForElements()) {
-        console.log("Elements found by MutationObserver.");
         runSetup();
-        obs.disconnect(); // Penting: hentikan observasi setelah berhasil
+        obs.disconnect(); // Hentikan observasi setelah setup berhasil
       }
     });
 
+    // Mulai mengamati perubahan pada body
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
+
+    // Hapus penanda saat halaman berganti untuk memastikan presenter bisa inisialisasi ulang
+    window.addEventListener(
+      "hashchange",
+      () => {
+        delete document.body.dataset.presenterInitialized;
+      },
+      { once: true }
+    );
   };
 
   init();
