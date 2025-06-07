@@ -36,10 +36,13 @@ async function deleteSessionFromFirestore(sessionId) {
 const loadData = async () => {
   try {
     const userSnapshot = await db.collection("users").get();
-    users = userSnapshot.docs.map((doc) => doc.data());
+    users = userSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })); // Menambahkan ID dokumen
 
     const journalSnapshot = await db.collection("journals").get();
-    journalEntries = journalSnapshot.docs.map((doc) => doc.data());
+    journalEntries = journalSnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      id: doc.id,
+    }));
 
     // Update idCounter supaya tetap unik
     const allIds = [
@@ -63,19 +66,23 @@ const loadData = async () => {
   }
 };
 
-// Simpan users ke Firestore
+// Simpan users ke Firestore (Fungsi ini mungkin tidak lagi diperlukan jika registrasi langsung ke DB)
 const saveUsers = async () => {
   try {
     for (const user of users) {
+      // Menggunakan email sebagai ID dokumen agar konsisten dengan frontend
       await db
         .collection("users")
-        .doc(user.id)
-        .set({
-          ...user,
-          updatedAt: getCurrentDate(),
-        });
+        .doc(user.email)
+        .set(
+          {
+            ...user,
+            updatedAt: getCurrentDate(),
+          },
+          { merge: true }
+        );
     }
-    console.log("✅ Users saved to Firestore");
+    console.log("✅ Users state saved to Firestore");
   } catch (error) {
     console.error("❌ Error saving users to Firestore:", error);
   }
@@ -116,11 +123,11 @@ const init = async () => {
   await loadData();
 
   const server = Hapi.server({
-    port: 9000,
+    port: process.env.PORT || 9000,
     host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ["https://moodmate.up.railway.app"],
+        origin: ["*"], // Mengizinkan semua origin untuk development
         credentials: true,
         headers: [
           "Accept",
@@ -138,6 +145,8 @@ const init = async () => {
   });
 
   // Health check
+
+  // Health check
   server.route({
     method: "GET",
     path: "/api/health",
@@ -145,10 +154,6 @@ const init = async () => {
       status: "OK",
       message: "MoodMate Auth API is running",
       timestamp: getCurrentDate(),
-      stats: {
-        users: users.length,
-        journals: journalEntries.length,
-      },
     }),
   });
 
@@ -157,60 +162,76 @@ const init = async () => {
     method: "POST",
     path: "/api/auth/register",
     handler: async (request, h) => {
-      const { name, email, password } = request.payload;
-      if (users.find((u) => u.email === email)) {
+      try {
+        const { name, email, password } = request.payload;
+
+        const userRef = db.collection("users").doc(email);
+        const docSnap = await userRef.get();
+
+        if (docSnap.exists) {
+          return h
+            .response({ success: false, message: "Email sudah terdaftar" })
+            .code(409);
+        }
+
+        const hashedPassword = await Bcrypt.hash(password, 10);
+
+        const newUser = {
+          name,
+          email,
+          password: hashedPassword,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await userRef.set(newUser);
+
+        // Menambahkan user baru ke array lokal agar konsisten tanpa perlu reload
+        users.push({ ...newUser, id: email });
+
         return h
-          .response({ success: false, message: "Email sudah terdaftar" })
-          .code(400);
+          .response({ success: true, message: "User berhasil didaftarkan" })
+          .code(201);
+      } catch (error) {
+        console.error("!!! FATAL ERROR in /api/auth/register handler:", error);
+        return h
+          .response({
+            success: false,
+            message: "Terjadi kesalahan internal pada server.",
+          })
+          .code(500);
       }
-      const hashedPassword = await Bcrypt.hash(password, 10);
-      const user = {
-        id: generateId(),
-        name,
-        email,
-        password: hashedPassword,
-        createdAt: getCurrentDate(),
-      };
-      users.push(user);
-      await saveUsers();
-      return {
-        success: true,
-        message: "User berhasil didaftarkan",
-        data: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
-      };
     },
   });
 
   // Login
   // Ganti handler login Anda yang lama dengan yang ini
+  // Login
   server.route({
     method: "POST",
     path: "/api/auth/login",
     handler: async (request, h) => {
-      // Menambahkan blok try...catch yang solid
       try {
         const { email, password } = request.payload;
         console.log(`[LOGIN] - Attempting login for email: ${email}`);
 
-        // Mengambil data user dari array yang sudah di-load saat startup
-        // PENTING: Pastikan logika loadData Anda sudah benar
-        const user = users.find((u) => u.email === email);
+        const userRef = db.collection("users").doc(email);
+        const userDoc = await userRef.get();
 
-        if (!user) {
+        if (!userDoc.exists) {
           console.error(`[LOGIN] - Failure: User not found for email ${email}`);
           return h
             .response({ success: false, message: "Email atau password salah" })
             .code(401);
         }
 
+        const userData = userDoc.data();
         console.log(`[LOGIN] - User found. Comparing password for ${email}...`);
 
-        // Membandingkan password yang diberikan dengan hash di database
-        const isPasswordValid = await Bcrypt.compare(password, user.password);
+        const isPasswordValid = await Bcrypt.compare(
+          password,
+          userData.password
+        );
 
         if (!isPasswordValid) {
           console.error(
@@ -221,11 +242,10 @@ const init = async () => {
             .code(401);
         }
 
-        // Jika berhasil, buat session dan simpan ke Firestore
         const sessionId = generateSessionId();
         const sessionData = {
-          userId: user.id,
-          email: user.email,
+          userId: userDoc.id, // ID Dokumen adalah email
+          email: userData.email,
           createdAt: getCurrentDate(),
         };
         await saveSessionToFirestore(sessionId, sessionData);
@@ -239,15 +259,14 @@ const init = async () => {
             data: {
               sessionId: sessionId,
               user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
+                id: userDoc.id,
+                name: userData.name,
+                email: userData.email,
               },
             },
           })
           .header("X-Session-ID", sessionId);
       } catch (error) {
-        // INI AKAN MENANGKAP ERROR APAPUN DAN MENAMPILKANNYA DI LOG
         console.error("!!! FATAL ERROR in /api/auth/login handler:", error);
         return h
           .response({
@@ -268,10 +287,9 @@ const init = async () => {
       if (sessionId) {
         await deleteSessionFromFirestore(sessionId);
       }
-      return {
-        success: true,
-        message: "Logout berhasil",
-      };
+      return h
+        .response({ success: true, message: "Logout berhasil" })
+        .code(200);
     },
   });
   // Profile
@@ -279,31 +297,46 @@ const init = async () => {
     method: "GET",
     path: "/api/auth/profile",
     handler: async (request, h) => {
-      const session = await validateSession(request);
-      if (!session) {
-        return h
-          .response({ success: false, message: "Session tidak valid" })
-          .code(401);
-      }
-      const user = users.find((u) => u.id === session.userId);
-      if (!user) {
-        return h
-          .response({ success: false, message: "User tidak ditemukan" })
-          .code(404);
-      }
-      return {
-        success: true,
-        message: "Profil berhasil diambil",
-        data: {
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
+      try {
+        const session = await validateSession(request);
+        if (!session) {
+          return h
+            .response({ success: false, message: "Session tidak valid" })
+            .code(401);
+        }
+
+        const userRef = db.collection("users").doc(session.email);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+          return h
+            .response({ success: false, message: "User tidak ditemukan" })
+            .code(404);
+        }
+        const userData = userDoc.data();
+
+        return {
+          success: true,
+          message: "Profil berhasil diambil",
+          data: {
+            user: {
+              id: userDoc.id,
+              name: userData.name,
+              email: userData.email,
+              createdAt: userData.createdAt,
+              updatedAt: userData.updatedAt,
+            },
           },
-        },
-      };
+        };
+      } catch (error) {
+        console.error("!!! FATAL ERROR in /api/auth/profile handler:", error);
+        return h
+          .response({
+            success: false,
+            message: "Terjadi kesalahan internal pada server.",
+          })
+          .code(500);
+      }
     },
   });
 
@@ -803,6 +836,7 @@ const init = async () => {
     },
   });
 
+  // Predict Mood
   server.route({
     method: "POST",
     path: "/api/predict-mood",
@@ -811,16 +845,12 @@ const init = async () => {
         const session = await validateSession(request);
         if (!session) {
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
         }
 
         console.log("Received prediction request:", request.payload);
 
-        // Menjadi ini (menggunakan environment variable):
         const mlApiUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
         const mlResponse = await fetch(`${mlApiUrl}/predict`, {
           method: "POST",
@@ -828,16 +858,11 @@ const init = async () => {
           body: JSON.stringify({ text: request.payload.text }),
         });
 
-        console.log("ML Service response status:", mlResponse.status);
-
-        if (!mlResponse.ok) {
-          const error = await mlResponse.json();
-          console.log("ML Service error:", error);
-          throw new Error(error.detail);
-        }
-
         const result = await mlResponse.json();
-        console.log("ML Service result:", result);
+        if (!mlResponse.ok) {
+          const errorMessage = result.detail || "ML service returned an error";
+          throw new Error(errorMessage);
+        }
 
         return result;
       } catch (error) {
@@ -845,7 +870,7 @@ const init = async () => {
         return h
           .response({
             success: false,
-            message: "Prediction failed: " + error.message,
+            message: `Prediction failed: ${error.message}`,
           })
           .code(500);
       }
@@ -867,29 +892,12 @@ const init = async () => {
       process.exit(1);
     }
   };
-
-  process.on("SIGTERM", gracefulShutdown);
-  process.on("SIGINT", gracefulShutdown);
-
   await server.start();
-  console.log("Server running on %s", server.info.uri);
-  console.log("   - Health Check: GET /api/health");
-  console.log("   - Register: POST /api/auth/register");
-  console.log("   - Login: POST /api/auth/login");
-  console.log("   - Profile: GET /api/auth/profile");
-  console.log("   - Update Profile: PUT /api/auth/profile");
-  console.log("   - Change Password: PUT /api/auth/change-password");
-  console.log("   - Logout: POST /api/auth/logout");
-  console.log("   - Predict Mood: POST /api/predict-mood");
-  console.log("   - Create Journal: POST /api/journal");
-  console.log("   - Get Journals: GET /api/journal");
-  console.log("   - Get Journal by ID: GET /api/journal/{id}");
-  console.log("   - Update Journal: PUT /api/journal/{id}");
-  console.log("   - Delete Journal: DELETE /api/journal/{id}");
+  console.log("✅ Backend server running on %s", server.info.uri);
 };
 
 process.on("unhandledRejection", (err) => {
-  console.log(err);
+  console.log("Unhandled Rejection:", err);
   process.exit(1);
 });
 
