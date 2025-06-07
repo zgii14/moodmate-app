@@ -45,6 +45,33 @@ export default function ProfilPresenter() {
       }, 300);
     }, 3000);
   };
+  const toggleEditMode = (isEditing) => {
+    const viewMode = document.getElementById("profile-view-mode");
+    const editMode = document.getElementById("profile-edit-mode");
+    const editBtn = document.getElementById("edit-profile-btn");
+
+    if (viewMode && editMode && editBtn) {
+      if (isEditing) {
+        viewMode.classList.add("hidden");
+        editMode.classList.remove("hidden");
+        editBtn.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        `;
+        editBtn.title = "Batal Edit";
+      } else {
+        viewMode.classList.remove("hidden");
+        editMode.classList.add("hidden");
+        editBtn.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+        `;
+        editBtn.title = "Edit Profile";
+      }
+    }
+  };
 
   const setLoadingState = (isLoading) => {
     const changePhotoBtn = document.getElementById("change-photo-btn");
@@ -95,6 +122,30 @@ export default function ProfilPresenter() {
       photoOverlay.style.pointerEvents = isLoading ? "none" : "auto";
     }
   };
+  const setSaveButtonLoading = (isLoading) => {
+    const saveBtn = document.getElementById("save-profile-btn");
+    if (!saveBtn) return;
+
+    if (isLoading) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `
+        <svg class="w-5 h-5 inline-block mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Menyimpan...
+      `;
+      saveBtn.classList.add("opacity-70", "cursor-not-allowed");
+    } else {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `
+        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Simpan Perubahan
+      `;
+      saveBtn.classList.remove("opacity-70", "cursor-not-allowed");
+    }
+  };
 
   const updateImageDisplay = (imageData, isInitialLoad = false) => {
     const profileImg = document.getElementById("profile-photo-preview");
@@ -122,146 +173,6 @@ export default function ProfilPresenter() {
         container.offsetHeight;
       }
     }
-  };
-
-  const showPhotoModal = () => {
-    const modal = document.getElementById("photo-options-modal");
-    if (modal) {
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    }
-  };
-
-  const hidePhotoModal = () => {
-    const modal = document.getElementById("photo-options-modal");
-    if (modal) {
-      modal.classList.remove("flex");
-      modal.classList.add("hidden");
-
-      setLoadingState(false);
-
-      const photoOverlay = document.getElementById("photo-overlay");
-      if (photoOverlay) {
-        photoOverlay.style.transition = "";
-      }
-
-      document.body.offsetHeight;
-    }
-  };
-
-  const loadUserProfile = async () => {
-    try {
-      const userEmail = getCurrentUserEmail();
-      if (!userEmail) {
-        throw new Error("User tidak ditemukan");
-      }
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-
-        const parseFirestoreDate = (dateValue) => {
-          if (!dateValue) return null;
-
-          if (dateValue.toDate) {
-            return dateValue.toDate().toISOString();
-          }
-
-          if (
-            typeof dateValue === "string" &&
-            !isNaN(new Date(dateValue).getTime())
-          ) {
-            return new Date(dateValue).toISOString();
-          }
-
-          try {
-            const date = new Date(dateValue);
-            return !isNaN(date.getTime()) ? date.toISOString() : null;
-          } catch (e) {
-            return null;
-          }
-        };
-
-        return {
-          name: userData.name || "",
-          email: userData.email || userEmail,
-          profilePhoto: userData.profilePhoto || null,
-          createdAt: parseFirestoreDate(userData.createdAt),
-          updatedAt:
-            parseFirestoreDate(userData.updatedAt) ||
-            parseFirestoreDate(userData.createdAt),
-        };
-      } else {
-        throw new Error("Data user tidak ditemukan");
-      }
-    } catch (error) {
-      console.error("Error loading user profile:", error);
-      throw error;
-    }
-  };
-
-  const loadProfilePhoto = async () => {
-    try {
-      const userEmail = getCurrentUserEmail();
-      if (!userEmail) return null;
-
-      if (cachedProfilePhoto !== null) {
-        return cachedProfilePhoto;
-      }
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      const photoData = userSnap.exists()
-        ? userSnap.data().profilePhoto || null
-        : null;
-
-      cachedProfilePhoto = photoData;
-      return photoData;
-    } catch (error) {
-      console.error("Error loading profile photo:", error);
-      return null;
-    }
-  };
-
-  const saveProfilePhoto = async (imageData) => {
-    const userEmail = getCurrentUserEmail();
-    if (!userEmail) throw new Error("User tidak ditemukan");
-
-    const userRef = doc(db, "users", userEmail);
-    await updateDoc(userRef, {
-      profilePhoto: imageData,
-      updatedAt: new Date().toISOString(),
-    });
-
-    cachedProfilePhoto = imageData;
-  };
-
-  const removeProfilePhoto = async () => {
-    const userEmail = getCurrentUserEmail();
-    if (!userEmail) throw new Error("User tidak ditemukan");
-
-    const userRef = doc(db, "users", userEmail);
-    await updateDoc(userRef, {
-      profilePhoto: null,
-      updatedAt: new Date().toISOString(),
-    });
-
-    cachedProfilePhoto = null;
-  };
-
-  const validateFile = (file) => {
-    if (file.size > FILE_SIZE_LIMIT) {
-      return "Ukuran file terlalu besar! Maksimal 5MB.";
-    }
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return "Format file tidak didukung! Gunakan JPG, PNG, atau GIF.";
-    }
-
-    return null;
   };
 
   const handlePhotoUpload = async (event) => {
@@ -410,165 +321,23 @@ export default function ProfilPresenter() {
     }
   };
 
-  const hashPassword = async (password) => {
-    try {
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      return hashedPassword;
-    } catch (error) {
-      console.error("Error hashing password:", error);
-      throw new Error("Gagal mengenkripsi password");
-    }
-  };
-
-  const validatePassword = (password, confirmPassword) => {
-    if (password && password.length < 6) {
-      return "Password minimal 6 karakter";
-    }
-    if (password !== confirmPassword) {
-      return "Konfirmasi password tidak sesuai";
-    }
-    return null;
-  };
-
-  const validateName = (name) => {
-    if (!name || name.trim().length === 0) {
-      return "Nama tidak boleh kosong";
-    }
-    if (name.trim().length < 2) {
-      return "Nama minimal 2 karakter";
-    }
-    if (name.trim().length > 50) {
-      return "Nama maksimal 50 karakter";
-    }
-    return null;
-  };
-
-  const updateUserProfile = async (userData) => {
-    try {
-      const userEmail = getCurrentUserEmail();
-      if (!userEmail) {
-        throw new Error("User tidak ditemukan");
-      }
-
-      console.log("Updating user profile for:", userEmail);
-      console.log("Update data:", userData);
-
-      const userRef = doc(db, "users", userEmail);
-
-      const updateData = {
-        ...userData,
-        updatedAt: new Date().toISOString(),
-      };
-
-      if (userData.password) {
-        updateData.password = await hashPassword(userData.password);
-        console.log("Password hashed successfully");
-      }
-
-      await updateDoc(userRef, updateData);
-      console.log("Profile updated successfully in Firestore");
-
-      UserModel.updateUser(updateData);
-      console.log("UserModel updated successfully");
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      throw error;
-    }
-  };
-
-  const toggleEditMode = (isEditing) => {
-    const viewMode = document.getElementById("profile-view-mode");
-    const editMode = document.getElementById("profile-edit-mode");
-    const editBtn = document.getElementById("edit-profile-btn");
-
-    if (viewMode && editMode && editBtn) {
-      if (isEditing) {
-        viewMode.classList.add("hidden");
-        editMode.classList.remove("hidden");
-        editBtn.innerHTML = `
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        `;
-        editBtn.title = "Batal Edit";
-      } else {
-        viewMode.classList.remove("hidden");
-        editMode.classList.add("hidden");
-        editBtn.innerHTML = `
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-          </svg>
-        `;
-        editBtn.title = "Edit Profile";
-      }
-    }
-  };
-
-  const handleEditProfile = async () => {
-    const isCurrentlyEditing = !document
-      .getElementById("profile-edit-mode")
-      .classList.contains("hidden");
-
-    if (isCurrentlyEditing) {
-      clearEditForm();
-      toggleEditMode(false);
-    } else {
-      try {
-        const userData = await loadUserProfile();
-        const editNameInput = document.getElementById("edit-name");
-        if (editNameInput) {
-          editNameInput.value = userData.name || "";
-        }
-        toggleEditMode(true);
-      } catch (error) {
-        console.error("Error loading user data:", error);
-        showToast("Gagal memuat data profil", "error");
-      }
-    }
-  };
-
-  const setSaveButtonLoading = (isLoading) => {
-    const saveBtn = document.getElementById("save-profile-btn");
-    if (!saveBtn) return;
-
-    if (isLoading) {
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = `
-        <svg class="w-5 h-5 inline-block mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        Menyimpan...
-      `;
-      saveBtn.classList.add("opacity-70", "cursor-not-allowed");
-    } else {
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = `
-        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        Simpan Perubahan
-      `;
-      saveBtn.classList.remove("opacity-70", "cursor-not-allowed");
-    }
-  };
-  
-
   const loadAndDisplayProfile = async () => {
     try {
+      // PERBAIKAN: Memanggil fungsi yang benar dari UserModel
       const userData = await UserModel.refreshProfile();
 
       if (!userData) {
-        // UserModel.refreshProfile() sudah menangani logout, jadi tidak perlu tindakan lebih lanjut.
-        // Cukup hentikan eksekusi untuk mencegah error.
-        console.error(
-          "Gagal memuat profil atau sesi tidak valid. Pengguna akan di-logout."
-        );
+        // UserModel.refreshProfile() sudah menangani logout jika sesi tidak valid.
+        // Kita tidak perlu melakukan apa-apa lagi.
+        console.error("Gagal memuat profil atau sesi tidak valid.");
         return;
       }
 
+      // Mengisi form edit dengan data yang ada, jika dalam mode edit
+      const editNameInput = document.getElementById("edit-name");
+      if (editNameInput) editNameInput.value = userData.name || "";
+
+      // Mengisi tampilan profil
       document.getElementById("display-name").textContent =
         userData.name || "Pengguna";
       document.getElementById("display-email").textContent =
@@ -576,6 +345,7 @@ export default function ProfilPresenter() {
       updateImageDisplay(userData.profilePhoto);
     } catch (error) {
       console.error("Error displaying profile data:", error);
+      showToast("Gagal menampilkan data profil.", "error");
     }
   };
   const handleSaveProfile = async () => {
@@ -589,24 +359,27 @@ export default function ProfilPresenter() {
 
       if (!newName) throw new Error("Nama tidak boleh kosong.");
 
+      // Kirim update nama
       const profileResult = await ApiService.updateProfile({ name: newName });
       if (!profileResult.success)
         throw new Error(profileResult.message || "Gagal memperbarui nama.");
 
+      // Jika ada password baru, kirim juga
       if (newPassword) {
         if (newPassword !== confirmPassword)
           throw new Error("Konfirmasi password tidak cocok.");
         if (newPassword.length < 6)
           throw new Error("Password baru minimal 6 karakter.");
 
+        // Di dunia nyata, backend akan meminta password LAMA untuk keamanan.
         const passwordResult = await ApiService.changePassword({ newPassword });
         if (!passwordResult.success)
           throw new Error(passwordResult.message || "Gagal mengubah password.");
       }
 
       showToast("Profil berhasil diperbarui!", "success");
-      await loadAndDisplayProfile();
-      toggleEditMode(false);
+      await loadAndDisplayProfile(); // Muat ulang data yang baru
+      toggleEditMode(false); // Kembali ke mode lihat
     } catch (error) {
       showToast(`Gagal: ${error.message}`, "error");
     } finally {
@@ -614,138 +387,30 @@ export default function ProfilPresenter() {
     }
   };
 
-  const clearEditForm = () => {
-    const editPasswordInput = document.getElementById("edit-password");
-    const editPasswordConfirmInput = document.getElementById(
-      "edit-password-confirm"
-    );
-
-    if (editPasswordInput) editPasswordInput.value = "";
-    if (editPasswordConfirmInput) editPasswordConfirmInput.value = "";
-  };
-
-  const handleCancelEdit = () => {
-    clearEditForm();
-    toggleEditMode(false);
-  };
-
-  const loadAndDisplayPhoto = async () => {
-    try {
-      const photoData = await loadProfilePhoto();
-      updateImageDisplay(photoData, true);
-    } catch (error) {
-      console.error("Error loading profile photo:", error);
-      updateImageDisplay(null, true);
-      showToast("Gagal memuat foto profil", "error");
-    }
-  };
-
-  const setupEventListeners = () => {
-    const uploadInput = document.getElementById("upload-photo");
-    const changePhotoBtn = document.getElementById("change-photo-btn");
-    const photoOverlay = document.getElementById("photo-overlay");
-    const uploadPhotoBtn = document.getElementById("upload-photo-btn");
-    const resetPhotoBtn = document.getElementById("reset-photo-btn");
-    const cancelPhotoBtn = document.getElementById("cancel-photo-options");
-    const photoModal = document.getElementById("photo-options-modal");
-
-    const editBtn = document.getElementById("edit-profile-btn");
-    const saveBtn = document.getElementById("save-profile-btn");
-    const cancelBtn = document.getElementById("cancel-edit-btn");
-    const editInputs = [
-      document.getElementById("edit-name"),
-      document.getElementById("edit-password"),
-      document.getElementById("edit-password-confirm"),
-    ].filter(Boolean);
-
-    if (changePhotoBtn)
-      changePhotoBtn.addEventListener("click", showPhotoModal);
-    if (photoOverlay) photoOverlay.addEventListener("click", showPhotoModal);
-    if (uploadPhotoBtn)
-      uploadPhotoBtn.addEventListener("click", () => uploadInput?.click());
-    if (resetPhotoBtn)
-      resetPhotoBtn.addEventListener("click", showConfirmDialog);
-    if (cancelPhotoBtn)
-      cancelPhotoBtn.addEventListener("click", hidePhotoModal);
-    if (uploadInput) uploadInput.addEventListener("change", handlePhotoUpload);
-
-    if (photoModal) {
-      photoModal.addEventListener("click", (e) => {
-        if (e.target === photoModal) {
-          hidePhotoModal();
-        }
-      });
-    }
-
-    if (editBtn) editBtn.addEventListener("click", handleEditProfile);
-    if (saveBtn) saveBtn.addEventListener("click", handleSaveProfile);
-    if (cancelBtn) cancelBtn.addEventListener("click", handleCancelEdit);
-
-    editInputs.forEach((input) => {
-      input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          handleSaveProfile();
-        }
-      });
-    });
-
-    console.log("Event listeners setup completed");
-  };
-
   const init = () => {
-    if (typeof document === "undefined") return;
+    // Menunggu DOM siap sebelum menambahkan event listener
+    document.addEventListener("DOMContentLoaded", () => {
+      document
+        .getElementById("save-profile-btn")
+        ?.addEventListener("click", handleSaveProfile);
+      document
+        .getElementById("edit-profile-btn")
+        ?.addEventListener("click", () => {
+          const editMode = document.getElementById("profile-edit-mode");
+          const isEditing = editMode
+            ? !editMode.classList.contains("hidden")
+            : false;
+          toggleEditMode(!isEditing);
+        });
+      document
+        .getElementById("cancel-edit-btn")
+        ?.addEventListener("click", () => toggleEditMode(false));
 
-    const waitForElements = () => {
-      const requiredElements = [
-        "profile-photo-preview",
-        "change-photo-btn",
-        "edit-profile-btn",
-        "display-name",
-      ];
-      return requiredElements.every((id) => document.getElementById(id));
-    };
-
-    const trySetup = () => {
-      if (waitForElements()) {
-        setupEventListeners();
-        loadAndDisplayPhoto();
-        loadAndDisplayProfile();
-        return true;
-      }
-      return false;
-    };
-
-    if (trySetup()) return;
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
-        if (!trySetup()) {
-          const observer = new MutationObserver(() => {
-            if (trySetup()) observer.disconnect();
-          });
-          observer.observe(document.body, { childList: true, subtree: true });
-        }
-      });
-    } else {
-      const observer = new MutationObserver(() => {
-        if (trySetup()) observer.disconnect();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
+      // Muat data profil saat halaman pertama kali dibuka
+      loadAndDisplayProfile();
+    });
   };
+  // --- Inisialisasi ---
 
   init();
-
-  return {
-    init,
-    loadAndDisplayPhoto,
-    loadAndDisplayProfile,
-    resetToDefault,
-    handleEditProfile,
-    handleSaveProfile,
-    handleCancelEdit,
-    updateUserProfile,
-    loadUserProfile,
-  };
 }
