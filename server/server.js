@@ -299,30 +299,19 @@ const init = async () => {
             .response({ success: false, message: "Session tidak valid" })
             .code(401);
         }
-
-        // --- PERBAIKAN: Ambil data user langsung dari Firestore, bukan dari memori ---
-        console.log(
-          `[PROFILE] - Fetching profile for user ID/email: ${session.userId}`
-        );
-
-        // session.userId seharusnya berisi email pengguna
+  
         const userRef = db.collection("users").doc(session.userId);
         const userDoc = await userRef.get();
-
+  
         if (!userDoc.exists) {
-          console.error(
-            `[PROFILE] - Failure: User document not found for ID ${session.userId}`
-          );
           return h
             .response({ success: false, message: "Data user tidak ditemukan" })
             .code(404);
         }
-
+  
         const userData = userDoc.data();
-
-        console.log(`[PROFILE] - Success: Profile found for ${session.userId}`);
-
-        // Kirim kembali data yang bersih (tanpa password hash)
+  
+        // Pastikan profilePhoto disertakan jika ada
         return {
           success: true,
           message: "Profil berhasil diambil",
@@ -333,6 +322,7 @@ const init = async () => {
               email: userData.email,
               createdAt: userData.createdAt,
               updatedAt: userData.updatedAt,
+              profilePhoto: userData.profilePhoto || null, // Tambahkan ini
             },
           },
         };

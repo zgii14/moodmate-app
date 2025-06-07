@@ -238,11 +238,9 @@ export const UserModel = {
     const result = await ApiService.getProfile();
     if (result && result.success) {
       const user = result.data.user;
-      // Update data di localStorage dengan data terbaru dari server
       localStorage.setItem("moodmate-user", JSON.stringify(user));
       return user;
     } else {
-      // Jika session tidak valid, otomatis logout
       this.logout();
       return null;
     }
