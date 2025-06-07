@@ -563,48 +563,7 @@ const init = async () => {
     },
   });
 
-  // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
-  server.route({
-    method: "GET",
-    path: "/api/journal/{id}",
-    handler: async (request, h) => {
-      try {
-        const session = await validateSession(request);
-        if (!session)
-          return h
-            .response({ success: false, message: "Session tidak valid" })
-            .code(401);
 
-        const journalId = request.params.id;
-        const journalRef = db.collection("journals").doc(journalId);
-        const docSnap = await journalRef.get();
-
-        if (!docSnap.exists) {
-          return h
-            .response({ success: false, message: "Jurnal tidak ditemukan" })
-            .code(404);
-        }
-
-        const journalData = docSnap.data();
-        // Pemeriksaan keamanan: pastikan user hanya bisa mengakses jurnal miliknya
-        if (journalData.userId !== session.userId) {
-          return h
-            .response({ success: false, message: "Akses ditolak" })
-            .code(403);
-        }
-
-        return h.response({
-          success: true,
-          data: { id: docSnap.id, ...journalData },
-        });
-      } catch (error) {
-        console.error(`!!! ERROR in /api/journal/{id} GET:`, error);
-        return h
-          .response({ success: false, message: "Terjadi kesalahan internal" })
-          .code(500);
-      }
-    },
-  });
 
   // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({
