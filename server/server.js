@@ -532,282 +532,207 @@ const init = async () => {
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
-        if (!session) {
+        if (!session)
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
-        }
 
-        const user = users.find((u) => u.id === session.userId);
-        if (!user) {
+        const { catatan, mood, aktivitas, detailAktivitas } = request.payload;
+        if (!catatan || !mood)
           return h
-            .response({
-              success: false,
-              message: "User tidak ditemukan",
-            })
-            .code(404);
-        }
+            .response({ success: false, message: "Input tidak lengkap" })
+            .code(400);
 
-        const {
+        const newJournalEntry = {
+          userId: session.userId, // Menyimpan ID user yang membuat jurnal
           catatan,
           mood,
-          aktivitas = [],
-          detailAktivitas = {},
-        } = request.payload;
-
-        // Validasi input
-        if (!catatan || catatan.trim() === "") {
-          return h
-            .response({
-              success: false,
-              message: "Catatan tidak boleh kosong",
-            })
-            .code(400);
-        }
-
-        if (!mood || mood.trim() === "") {
-          return h
-            .response({
-              success: false,
-              message: "Mood tidak boleh kosong",
-            })
-            .code(400);
-        }
-
-        const journalEntry = {
-          id: generateId(),
-          userId: user.id,
-          catatan,
-          mood,
-          aktivitas,
-          detailAktivitas,
+          aktivitas: aktivitas || [],
+          detailAktivitas: detailAktivitas || {},
           createdAt: getCurrentDate(),
+          updatedAt: getCurrentDate(),
         };
 
-        journalEntries.push(journalEntry);
-        await saveJournals();
+        const docRef = await db.collection("journals").add(newJournalEntry);
 
-        return {
-          success: true,
-          message: "Journal entry berhasil dibuat",
-          data: journalEntry,
-        };
-      } catch (error) {
-        console.error("Create journal error:", error);
         return h
           .response({
-            success: false,
-            message: "Gagal membuat journal entry",
+            success: true,
+            message: "Jurnal berhasil dibuat",
+            data: { id: docRef.id, ...newJournalEntry },
           })
+          .code(201);
+      } catch (error) {
+        console.error("!!! ERROR in /api/journal POST:", error);
+        return h
+          .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
       }
     },
   });
 
+  // MENDAPATKAN SEMUA JURNAL PENGGUNA
   server.route({
     method: "GET",
     path: "/api/journal",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
-        if (!session) {
+        if (!session)
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
-        }
 
-        const user = users.find((u) => u.id === session.userId);
-        if (!user) {
-          return h
-            .response({
-              success: false,
-              message: "User tidak ditemukan",
-            })
-            .code(404);
-        }
+        const journalSnapshot = await db
+          .collection("journals")
+          .where("userId", "==", session.userId)
+          .orderBy("createdAt", "desc")
+          .get();
 
-        const userJournals = journalEntries
-          .filter((entry) => entry.userId === user.id)
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const journals = journalSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-        return {
+        return h.response({
           success: true,
-          message: "Journal entries berhasil diambil",
-          data: userJournals,
-          total: userJournals.length,
-        };
+          message: "Jurnal berhasil diambil",
+          data: journals,
+          total: journals.length,
+        });
       } catch (error) {
-        console.error("Get journals error:", error);
+        console.error("!!! ERROR in /api/journal GET:", error);
         return h
-          .response({
-            success: false,
-            message: "Gagal mengambil journal entries",
-          })
+          .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
       }
     },
   });
 
+  // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({
     method: "GET",
     path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
-        if (!session) {
+        if (!session)
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
-        }
 
-        const user = users.find((u) => u.id === session.userId);
-        const { id } = request.params;
+        const journalId = request.params.id;
+        const journalRef = db.collection("journals").doc(journalId);
+        const docSnap = await journalRef.get();
 
-        const journalEntry = journalEntries.find(
-          (entry) => entry.id === id && entry.userId === user.id
-        );
-
-        if (!journalEntry) {
+        if (!docSnap.exists) {
           return h
-            .response({
-              success: false,
-              message: "Journal entry tidak ditemukan",
-            })
+            .response({ success: false, message: "Jurnal tidak ditemukan" })
             .code(404);
         }
 
-        return {
+        const journalData = docSnap.data();
+        // Pemeriksaan keamanan: pastikan user hanya bisa mengakses jurnal miliknya
+        if (journalData.userId !== session.userId) {
+          return h
+            .response({ success: false, message: "Akses ditolak" })
+            .code(403);
+        }
+
+        return h.response({
           success: true,
-          data: journalEntry,
-        };
+          data: { id: docSnap.id, ...journalData },
+        });
       } catch (error) {
-        console.error("Get journal by ID error:", error);
+        console.error(`!!! ERROR in /api/journal/{id} GET:`, error);
         return h
-          .response({
-            success: false,
-            message: "Gagal mengambil journal entry",
-          })
+          .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
       }
     },
   });
 
+  // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({
-    method: "PUT",
+    method: "GET",
     path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
-        if (!session) {
+        if (!session)
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
-        }
 
-        const user = users.find((u) => u.id === session.userId);
-        const { id } = request.params;
-        const { catatan, mood, aktivitas, detailAktivitas } = request.payload;
+        const journalId = request.params.id;
+        const journalRef = db.collection("journals").doc(journalId);
+        const docSnap = await journalRef.get();
 
-        const journalIndex = journalEntries.findIndex(
-          (entry) => entry.id === id && entry.userId === user.id
-        );
-
-        if (journalIndex === -1) {
+        if (!docSnap.exists) {
           return h
-            .response({
-              success: false,
-              message: "Journal entry tidak ditemukan",
-            })
+            .response({ success: false, message: "Jurnal tidak ditemukan" })
             .code(404);
         }
 
-        const updatedEntry = {
-          ...journalEntries[journalIndex],
-          ...(catatan && { catatan }),
-          ...(mood && { mood }),
-          ...(aktivitas && { aktivitas }),
-          ...(detailAktivitas && { detailAktivitas }),
-          updatedAt: getCurrentDate(),
-        };
+        const journalData = docSnap.data();
+        // Pemeriksaan keamanan: pastikan user hanya bisa mengakses jurnal miliknya
+        if (journalData.userId !== session.userId) {
+          return h
+            .response({ success: false, message: "Akses ditolak" })
+            .code(403);
+        }
 
-        journalEntries[journalIndex] = updatedEntry;
-        await saveJournals();
-
-        return {
+        return h.response({
           success: true,
-          message: "Journal entry berhasil diupdate",
-          data: updatedEntry,
-        };
+          data: { id: docSnap.id, ...journalData },
+        });
       } catch (error) {
-        console.error("Update journal error:", error);
+        console.error(`!!! ERROR in /api/journal/{id} GET:`, error);
         return h
-          .response({
-            success: false,
-            message: "Gagal mengupdate journal entry",
-          })
+          .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
       }
     },
   });
-
+  // MENGHAPUS JURNAL
   server.route({
     method: "DELETE",
     path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
-        if (!session) {
+        if (!session)
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
-        }
 
-        const user = users.find((u) => u.id === session.userId);
-        const { id } = request.params;
+        const journalId = request.params.id;
+        const journalRef = db.collection("journals").doc(journalId);
+        const docSnap = await journalRef.get();
 
-        const journalIndex = journalEntries.findIndex(
-          (entry) => entry.id === id && entry.userId === user.id
-        );
-
-        if (journalIndex === -1) {
+        if (!docSnap.exists) {
           return h
-            .response({
-              success: false,
-              message: "Journal entry tidak ditemukan",
-            })
+            .response({ success: false, message: "Jurnal tidak ditemukan" })
             .code(404);
         }
 
-        const deletedEntry = journalEntries.splice(journalIndex, 1)[0];
-        await saveJournals();
+        // Pemeriksaan keamanan
+        if (docSnap.data().userId !== session.userId) {
+          return h
+            .response({ success: false, message: "Akses ditolak" })
+            .code(403);
+        }
 
-        return {
+        await journalRef.delete();
+
+        return h.response({
           success: true,
-          message: "Journal entry berhasil dihapus",
-          data: deletedEntry,
-        };
+          message: "Jurnal berhasil dihapus",
+        });
       } catch (error) {
-        console.error("Delete journal error:", error);
+        console.error(`!!! ERROR in /api/journal/{id} DELETE:`, error);
         return h
-          .response({
-            success: false,
-            message: "Gagal menghapus journal entry",
-          })
+          .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
       }
     },

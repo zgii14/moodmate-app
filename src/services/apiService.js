@@ -115,8 +115,28 @@ const ApiService = {
     }
   },
   // --- Endpoint Profil Pengguna (BARU & DIPERBARUI) ---
+  // --- Endpoint Profil Pengguna ---
   async getProfile() {
     return this.makeRequest("/auth/profile", { method: "GET" });
+  },
+  async updateProfile(updateData) {
+    return this.makeRequest("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(updateData),
+    });
+  },
+  async changePassword(passwordData) {
+    return this.makeRequest("/auth/change-password", {
+      method: "PUT",
+      body: JSON.stringify(passwordData),
+    });
+  },
+  async updateProfilePhoto(imageData) {
+    // imageData adalah string base64
+    return this.makeRequest("/auth/profile-photo", {
+      method: "PUT",
+      body: JSON.stringify({ profilePhoto: imageData }),
+    });
   },
   async checkServerHealth() {
     try {
@@ -132,6 +152,32 @@ const ApiService = {
       console.log("ML Server is not running:", error.message);
       return false;
     }
+  },
+  // --- Endpoint Jurnal (BARU) ---
+  async getJournals() {
+    return this.makeRequest("/journal", { method: "GET" });
+  },
+
+  async getJournalById(id) {
+    return this.makeRequest(`/journal/${id}`, { method: "GET" });
+  },
+
+  async createJournal(journalData) {
+    return this.makeRequest("/journal", {
+      method: "POST",
+      body: JSON.stringify(journalData),
+    });
+  },
+
+  async updateJournal(id, journalData) {
+    return this.makeRequest(`/journal/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(journalData),
+    });
+  },
+
+  async deleteJournal(id) {
+    return this.makeRequest(`/journal/${id}`, { method: "DELETE" });
   },
 };
 
