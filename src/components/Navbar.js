@@ -1,4 +1,3 @@
-
 import { UserModel } from "../models/UserModel.js"; // Mungkin path ini salah
 console.log("UserModel di dalam Navbar:", UserModel); // <-- TAMBAHKAN INI
 export const renderNavbar = () => {
@@ -292,8 +291,6 @@ export const renderNavbar = () => {
       toggleMobileMenu(false);
     }
   });
-
-  updateNavbarProfilePhoto();
   // Ganti dengan event listener yang lebih umum
   window.addEventListener("userProfileChanged", () => {
     console.log("Profile changed, re-rendering navbar...");
