@@ -1,6 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../utils/firebase.js";
 import ApiService from "../services/apiService";
+import UserModel from "../models/UserModel.js";
 export const renderNavbar = () => {
   const app = document.getElementById("app");
   let nav = app.querySelector("nav");
