@@ -149,59 +149,6 @@ export default function ProfilPresenter() {
     }
   };
 
-  const loadUserProfile = async () => {
-    try {
-      const userEmail = getCurrentUserEmail();
-      if (!userEmail) {
-        throw new Error("User tidak ditemukan");
-      }
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-
-        const parseFirestoreDate = (dateValue) => {
-          if (!dateValue) return null;
-
-          if (dateValue.toDate) {
-            return dateValue.toDate().toISOString();
-          }
-
-          if (
-            typeof dateValue === "string" &&
-            !isNaN(new Date(dateValue).getTime())
-          ) {
-            return new Date(dateValue).toISOString();
-          }
-
-          try {
-            const date = new Date(dateValue);
-            return !isNaN(date.getTime()) ? date.toISOString() : null;
-          } catch (e) {
-            return null;
-          }
-        };
-
-        return {
-          name: userData.name || "",
-          email: userData.email || userEmail,
-          profilePhoto: userData.profilePhoto || null,
-          createdAt: parseFirestoreDate(userData.createdAt),
-          updatedAt:
-            parseFirestoreDate(userData.updatedAt) ||
-            parseFirestoreDate(userData.createdAt),
-        };
-      } else {
-        throw new Error("Data user tidak ditemukan");
-      }
-    } catch (error) {
-      console.error("Error loading user profile:", error);
-      throw error;
-    }
-  };
-
   const loadProfilePhoto = async () => {
     try {
       const userEmail = getCurrentUserEmail();
@@ -410,16 +357,6 @@ export default function ProfilPresenter() {
     }
   };
 
-  const hashPassword = async (password) => {
-    try {
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      return hashedPassword;
-    } catch (error) {
-      console.error("Error hashing password:", error);
-      throw new Error("Gagal mengenkripsi password");
-    }
-  };
 
   const validatePassword = (password, confirmPassword) => {
     if (password && password.length < 6) {
@@ -444,40 +381,6 @@ export default function ProfilPresenter() {
     return null;
   };
 
-  const updateUserProfile = async (userData) => {
-    try {
-      const userEmail = getCurrentUserEmail();
-      if (!userEmail) {
-        throw new Error("User tidak ditemukan");
-      }
-
-      console.log("Updating user profile for:", userEmail);
-      console.log("Update data:", userData);
-
-      const userRef = doc(db, "users", userEmail);
-
-      const updateData = {
-        ...userData,
-        updatedAt: new Date().toISOString(),
-      };
-
-      if (userData.password) {
-        updateData.password = await hashPassword(userData.password);
-        console.log("Password hashed successfully");
-      }
-
-      await updateDoc(userRef, updateData);
-      console.log("Profile updated successfully in Firestore");
-
-      UserModel.updateUser(updateData);
-      console.log("UserModel updated successfully");
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      throw error;
-    }
-  };
 
   const toggleEditMode = (isEditing) => {
     const viewMode = document.getElementById("profile-view-mode");
@@ -554,28 +457,29 @@ export default function ProfilPresenter() {
       saveBtn.classList.remove("opacity-70", "cursor-not-allowed");
     }
   };
-  
 
   const loadAndDisplayProfile = async () => {
     try {
       const userData = await UserModel.refreshProfile();
 
       if (!userData) {
-        // UserModel.refreshProfile() sudah menangani logout, jadi tidak perlu tindakan lebih lanjut.
-        // Cukup hentikan eksekusi untuk mencegah error.
-        console.error(
-          "Gagal memuat profil atau sesi tidak valid. Pengguna akan di-logout."
-        );
-        return;
+        // UserModel.refreshProfile() sudah menangani logout jika sesi tidak valid.
+        throw new Error("Gagal memuat profil.");
       }
 
+      // Mengisi tampilan profil
       document.getElementById("display-name").textContent =
         userData.name || "Pengguna";
       document.getElementById("display-email").textContent =
         userData.email || "Email";
       updateImageDisplay(userData.profilePhoto);
+
+      // Mengisi form edit dengan data terbaru
+      const editNameInput = document.getElementById("edit-name");
+      if (editNameInput) editNameInput.value = userData.name || "";
     } catch (error) {
       console.error("Error displaying profile data:", error);
+      showToast(error.message, "error");
     }
   };
   const handleSaveProfile = async () => {
@@ -589,16 +493,19 @@ export default function ProfilPresenter() {
 
       if (!newName) throw new Error("Nama tidak boleh kosong.");
 
+      // Mengirim permintaan update nama ke backend
       const profileResult = await ApiService.updateProfile({ name: newName });
       if (!profileResult.success)
         throw new Error(profileResult.message || "Gagal memperbarui nama.");
 
+      // Jika ada password baru, kirim juga ke backend
       if (newPassword) {
         if (newPassword !== confirmPassword)
           throw new Error("Konfirmasi password tidak cocok.");
         if (newPassword.length < 6)
           throw new Error("Password baru minimal 6 karakter.");
 
+        // Backend yang aman akan meminta password lama di sini
         const passwordResult = await ApiService.changePassword({ newPassword });
         if (!passwordResult.success)
           throw new Error(passwordResult.message || "Gagal mengubah password.");
@@ -745,7 +652,5 @@ export default function ProfilPresenter() {
     handleEditProfile,
     handleSaveProfile,
     handleCancelEdit,
-    updateUserProfile,
-    loadUserProfile,
   };
 }
