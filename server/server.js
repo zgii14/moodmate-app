@@ -359,7 +359,81 @@ const init = async () => {
       }
     },
   });
+  // TAMBAHKAN ROUTE BARU UNTUK UPDATE FOTO PROFIL
+  server.route({
+    method: "PUT",
+    path: "/api/auth/profile-photo",
+    handler: async (request, h) => {
+      try {
+        const session = await validateSession(request);
+        if (!session) {
+          return h
+            .response({ success: false, message: "Session tidak valid" })
+            .code(401);
+        }
 
+        const { profilePhoto } = request.payload;
+        if (typeof profilePhoto !== "string") {
+          return h
+            .response({ success: false, message: "Data foto tidak valid" })
+            .code(400);
+        }
+
+        const userRef = db.collection("users").doc(session.userId); // userId adalah email
+
+        await userRef.update({
+          profilePhoto: profilePhoto,
+          updatedAt: getCurrentDate(),
+        });
+
+        return h
+          .response({
+            success: true,
+            message: "Foto profil berhasil diperbarui",
+          })
+          .code(200);
+      } catch (error) {
+        console.error("!!! ERROR in /api/auth/profile-photo PUT:", error);
+        return h
+          .response({ success: false, message: "Terjadi kesalahan internal" })
+          .code(500);
+      }
+    },
+  });
+
+  // TAMBAHKAN ROUTE BARU UNTUK RESET FOTO PROFIL
+  server.route({
+    method: "DELETE",
+    path: "/api/auth/profile-photo",
+    handler: async (request, h) => {
+      try {
+        const session = await validateSession(request);
+        if (!session) {
+          return h
+            .response({ success: false, message: "Session tidak valid" })
+            .code(401);
+        }
+
+        const userRef = db.collection("users").doc(session.userId);
+
+        // Hapus field foto profil dari dokumen
+        const { FieldValue } = require("firebase-admin/firestore");
+        await userRef.update({
+          profilePhoto: FieldValue.delete(),
+          updatedAt: getCurrentDate(),
+        });
+
+        return h
+          .response({ success: true, message: "Foto profil berhasil direset" })
+          .code(200);
+      } catch (error) {
+        console.error("!!! ERROR in /api/auth/profile-photo DELETE:", error);
+        return h
+          .response({ success: false, message: "Terjadi kesalahan internal" })
+          .code(500);
+      }
+    },
+  });
   server.route({
     method: "PUT",
     path: "/api/auth/change-password",
@@ -562,8 +636,6 @@ const init = async () => {
       }
     },
   });
-
-
 
   // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({

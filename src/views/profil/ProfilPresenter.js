@@ -149,56 +149,6 @@ export default function ProfilPresenter() {
     }
   };
 
-  const loadProfilePhoto = async () => {
-    try {
-      const userEmail = UserModel.getCurrentUserEmail();
-      if (!userEmail) return null;
-
-      if (cachedProfilePhoto !== null) {
-        return cachedProfilePhoto;
-      }
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      const photoData = userSnap.exists()
-        ? userSnap.data().profilePhoto || null
-        : null;
-
-      cachedProfilePhoto = photoData;
-      return photoData;
-    } catch (error) {
-      console.error("Error loading profile photo:", error);
-      return null;
-    }
-  };
-
-  const saveProfilePhoto = async (imageData) => {
-    const userEmail = UserModel.getCurrentUserEmail();
-    if (!userEmail) throw new Error("User tidak ditemukan");
-
-    const userRef = doc(db, "users", userEmail);
-    await updateDoc(userRef, {
-      profilePhoto: imageData,
-      updatedAt: new Date().toISOString(),
-    });
-
-    cachedProfilePhoto = imageData;
-  };
-
-  const removeProfilePhoto = async () => {
-    const userEmail = UserModel.getCurrentUserEmail();
-    if (!userEmail) throw new Error("User tidak ditemukan");
-
-    const userRef = doc(db, "users", userEmail);
-    await updateDoc(userRef, {
-      profilePhoto: null,
-      updatedAt: new Date().toISOString(),
-    });
-
-    cachedProfilePhoto = null;
-  };
-
   const validateFile = (file) => {
     if (file.size > FILE_SIZE_LIMIT) {
       return "Ukuran file terlalu besar! Maksimal 5MB.";
@@ -234,20 +184,19 @@ export default function ProfilPresenter() {
       reader.onload = async (e) => {
         try {
           const imageData = e.target.result;
-          await saveProfilePhoto(imageData);
+
+          // --- BAGIAN YANG DIUBAH ---
+          const result = await ApiService.updateProfilePhoto(imageData);
+          if (!result.success) {
+            throw new Error(result.message || "Gagal mengunggah foto.");
+          }
+          // --- AKHIR BAGIAN YANG DIUBAH ---
+
           updateImageDisplay(imageData);
-          UserModel.updateProfilePhoto(imageData);
-
+          UserModel.updateProfilePhoto(imageData); // Tetap update localStorage
           hidePhotoModal();
-
           showToast("Foto profil berhasil diperbarui!");
           updateLastModified();
-
-          setTimeout(() => {
-            const container =
-              document.querySelector(".profile-section") || document.body;
-            container.offsetHeight;
-          }, 200);
         } catch (error) {
           console.error("Error uploading photo:", error);
           showToast("Gagal menyimpan foto profil: " + error.message, "error");
@@ -315,26 +264,19 @@ export default function ProfilPresenter() {
   const resetToDefault = async () => {
     try {
       setLoadingState(true);
+      // --- BAGIAN YANG DIUBAH ---
+      // Kita akan buat fungsi ini di ApiService selanjutnya
+      const result = await ApiService.resetProfilePhoto();
+      if (!result.success) {
+        throw new Error(result.message || "Gagal mereset foto.");
+      }
+      // --- AKHIR BAGIAN YANG DIUBAH ---
 
-      await removeProfilePhoto();
       UserModel.updateProfilePhoto(null);
       updateImageDisplay(null);
-
       hidePhotoModal();
-
-      const changePhotoBtn = document.getElementById("change-photo-btn");
-      if (changePhotoBtn && changePhotoBtn.dataset.originalHtml) {
-        changePhotoBtn.innerHTML = changePhotoBtn.dataset.originalHtml;
-      }
-
       showToast("Foto profil berhasil direset ke default!");
       updateLastModified();
-
-      setTimeout(() => {
-        const container =
-          document.querySelector(".profile-section") || document.body;
-        container.offsetHeight;
-      }, 100);
     } catch (error) {
       console.error("Error resetting profile photo:", error);
       showToast("Gagal mereset foto profil. Silakan coba lagi.", "error");
@@ -534,17 +476,6 @@ export default function ProfilPresenter() {
     toggleEditMode(false);
   };
 
-  const loadAndDisplayPhoto = async () => {
-    try {
-      const photoData = await loadProfilePhoto();
-      updateImageDisplay(photoData, true);
-    } catch (error) {
-      console.error("Error loading profile photo:", error);
-      updateImageDisplay(null, true);
-      showToast("Gagal memuat foto profil", "error");
-    }
-  };
-
   const setupEventListeners = () => {
     const uploadInput = document.getElementById("upload-photo");
     const changePhotoBtn = document.getElementById("change-photo-btn");
@@ -615,7 +546,6 @@ export default function ProfilPresenter() {
       if (waitForElements()) {
         setupEventListeners();
         loadAndDisplayPhoto();
-        loadAndDisplayProfile();
         return true;
       }
       return false;

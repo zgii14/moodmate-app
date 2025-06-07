@@ -131,8 +131,15 @@ const ApiService = {
   async updateProfilePhoto(imageData) {
     // imageData adalah string base64
     return this.makeRequest("/auth/profile-photo", {
+      // Pastikan path API-nya benar
       method: "PUT",
       body: JSON.stringify({ profilePhoto: imageData }),
+    });
+  },
+  async resetProfilePhoto() {
+    return this.makeRequest("/auth/profile-photo", {
+      // Kita gunakan endpoint yang sama dengan method berbeda
+      method: "DELETE",
     });
   },
   async checkServerHealth() {
