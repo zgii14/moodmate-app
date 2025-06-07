@@ -48,10 +48,7 @@ const ApiService = {
 
   // Endpoint untuk Logout
   async logout() {
-    await this.makeRequest("/auth/logout", { method: "POST" });
-    localStorage.removeItem("moodmate-session-id");
-    localStorage.removeItem("moodmate-current-user");
-    localStorage.removeItem("moodmate-logged-in");
+    return this.makeRequest("/auth/logout", { method: "POST" });
   },
 
   async predictMood(text) {

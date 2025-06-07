@@ -3,33 +3,28 @@ export const UserModel = {
   getCurrent() {
     try {
       const userData = localStorage.getItem("moodmate-user");
-      if (!userData) {
-        return null;
-      }
-
-      const user = JSON.parse(userData);
-
-      if (!user || typeof user !== "object") {
-        this.cleanupInvalidSession();
-        return null;
-      }
-
-      if (!user.email) {
-        this.cleanupInvalidSession();
-        return null;
-      }
-
-      if (!user.joined && !user.createdAt && !user.created_at) {
-        user.joined = new Date().toISOString();
-        localStorage.setItem("moodmate-user", JSON.stringify(user));
-      }
-
-      return user;
+      return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      console.error("Error getting current user:", error);
-      this.cleanupInvalidSession();
+      console.error("Error parsing user data from localStorage", error);
+      this.clearSession();
       return null;
     }
+  },
+
+  // Menyimpan data user dan sesi ke localStorage
+  setSession(sessionId, user) {
+    localStorage.setItem("moodmate-session-id", sessionId);
+    localStorage.setItem("moodmate-user", JSON.stringify(user));
+    localStorage.setItem("moodmate-logged-in", "true");
+    localStorage.setItem("moodmate-current-user", user.email);
+  },
+
+  // Membersihkan semua data sesi dari localStorage
+  clearSession() {
+    localStorage.removeItem("moodmate-session-id");
+    localStorage.removeItem("moodmate-user");
+    localStorage.removeItem("moodmate-logged-in");
+    localStorage.removeItem("moodmate-current-user");
   },
 
   async getProfile() {
@@ -98,19 +93,20 @@ export const UserModel = {
     }
   },
 
+  // Fungsi logout yang lengkap
   async logout() {
     try {
-      // --- PERBAIKAN #2: Panggil method 'logout' dari objek ApiService ---
+      // Panggil endpoint backend untuk menghapus sesi di server
       await ApiService.logout();
-
-      this.cleanupInvalidSession();
-      location.hash = "/login";
-      console.log("User logged out successfully");
     } catch (error) {
-      console.error("Error during logout:", error);
-      // Tetap paksa logout di sisi frontend meskipun backend gagal
-      this.cleanupInvalidSession();
-      location.hash = "/login";
+      console.error(
+        "Error calling backend logout, but proceeding with client-side cleanup:",
+        error
+      );
+    } finally {
+      // Selalu bersihkan sesi di client dan redirect
+      this.clearSession();
+      window.location.hash = "/login";
     }
   },
 
@@ -127,13 +123,7 @@ export const UserModel = {
   },
 
   isLoggedIn() {
-    const sessionId = localStorage.getItem("moodmate-session-id");
-    const userData = this.getCurrent();
-    if (!sessionId || !userData || !userData.email) {
-      // Tidak perlu cleanup di sini karena bisa menyebabkan loop tak terbatas
-      return false;
-    }
-    return true;
+    return localStorage.getItem("moodmate-logged-in") === "true";
   },
 
   setCurrentUser(userData) {
@@ -264,24 +254,19 @@ export const UserModel = {
     }
   },
 
-  async refreshUserData() {
-    try {
-      if (!this.isLoggedIn()) {
-        console.warn("User not logged in, cannot refresh data");
-        return null;
-      }
+  // Mengambil profil dari backend dan memperbarui localStorage
+  async refreshProfile() {
+    if (!this.isLoggedIn()) return null;
 
-      const profile = await this.getProfile();
-      if (profile && profile.email) {
-        this.setCurrentUser(profile);
-        console.log("User data refreshed successfully");
-        return profile;
-      }
-
-      console.warn("Failed to refresh user data");
-      return null;
-    } catch (error) {
-      console.error("Error refreshing user data:", error);
+    const result = await ApiService.getProfile();
+    if (result && result.success) {
+      const user = result.data.user;
+      // Update data di localStorage dengan data terbaru dari server
+      localStorage.setItem("moodmate-user", JSON.stringify(user));
+      return user;
+    } else {
+      // Jika session tidak valid, otomatis logout
+      this.logout();
       return null;
     }
   },

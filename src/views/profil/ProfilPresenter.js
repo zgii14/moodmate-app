@@ -554,7 +554,30 @@ export default function ProfilPresenter() {
       saveBtn.classList.remove("opacity-70", "cursor-not-allowed");
     }
   };
+  
 
+  const loadAndDisplayProfile = async () => {
+    try {
+      const userData = await UserModel.refreshProfile();
+
+      if (!userData) {
+        // UserModel.refreshProfile() sudah menangani logout, jadi tidak perlu tindakan lebih lanjut.
+        // Cukup hentikan eksekusi untuk mencegah error.
+        console.error(
+          "Gagal memuat profil atau sesi tidak valid. Pengguna akan di-logout."
+        );
+        return;
+      }
+
+      document.getElementById("display-name").textContent =
+        userData.name || "Pengguna";
+      document.getElementById("display-email").textContent =
+        userData.email || "Email";
+      updateImageDisplay(userData.profilePhoto);
+    } catch (error) {
+      console.error("Error displaying profile data:", error);
+    }
+  };
   const handleSaveProfile = async () => {
     setSaveButtonLoading(true);
     try {
@@ -564,48 +587,27 @@ export default function ProfilPresenter() {
         "edit-password-confirm"
       ).value;
 
-      // Validasi di frontend (tetap penting untuk User Experience)
       if (!newName) throw new Error("Nama tidak boleh kosong.");
-      if (newPassword && newPassword !== confirmPassword)
-        throw new Error("Konfirmasi password tidak cocok.");
-      if (newPassword && newPassword.length < 6)
-        throw new Error("Password minimal 6 karakter.");
 
-      // Kirim update nama ke backend
-      const profileUpdateResult = await ApiService.updateProfile({
-        name: newName,
-      });
-      if (!profileUpdateResult.success) {
-        throw new Error(
-          profileUpdateResult.message || "Gagal memperbarui nama."
-        );
-      }
+      const profileResult = await ApiService.updateProfile({ name: newName });
+      if (!profileResult.success)
+        throw new Error(profileResult.message || "Gagal memperbarui nama.");
 
-      // Jika ada password baru, kirim juga ke backend (tanpa hashing di sini!)
       if (newPassword) {
-        // Backend akan meminta password saat ini untuk keamanan
-        const currentPassword = prompt(
-          "Untuk keamanan, masukkan password lama Anda:"
-        );
-        if (!currentPassword) {
-          throw new Error("Password lama diperlukan untuk mengubah password.");
-        }
-        const passwordUpdateResult = await ApiService.changePassword({
-          currentPassword,
-          newPassword,
-        });
-        if (!passwordUpdateResult.success) {
-          throw new Error(
-            passwordUpdateResult.message || "Gagal mengubah password."
-          );
-        }
+        if (newPassword !== confirmPassword)
+          throw new Error("Konfirmasi password tidak cocok.");
+        if (newPassword.length < 6)
+          throw new Error("Password baru minimal 6 karakter.");
+
+        const passwordResult = await ApiService.changePassword({ newPassword });
+        if (!passwordResult.success)
+          throw new Error(passwordResult.message || "Gagal mengubah password.");
       }
 
       showToast("Profil berhasil diperbarui!", "success");
-      await loadAndDisplayProfile(); // Muat ulang data profil yang baru dari backend
-      toggleEditMode(false); // Kembali ke mode lihat
+      await loadAndDisplayProfile();
+      toggleEditMode(false);
     } catch (error) {
-      console.error("Error saving profile:", error);
       showToast(`Gagal: ${error.message}`, "error");
     } finally {
       setSaveButtonLoading(false);
@@ -635,41 +637,6 @@ export default function ProfilPresenter() {
       console.error("Error loading profile photo:", error);
       updateImageDisplay(null, true);
       showToast("Gagal memuat foto profil", "error");
-    }
-  };
-
-  const loadAndDisplayProfile = async () => {
-    try {
-      // 1. Ambil data profil HANYA dari backend melalui ApiService
-      const result = await ApiService.getProfile();
-
-      if (!result || !result.success) {
-        throw new Error(result.message || "Gagal memuat data profil.");
-      }
-
-      const userData = result.data.user;
-
-      // 2. Update elemen-elemen di halaman dengan data dari backend
-      const displayNameElement = document.getElementById("display-name");
-      if (displayNameElement)
-        displayNameElement.textContent = userData.name || "Nama tidak tersedia";
-
-      const displayEmailElement = document.getElementById("display-email");
-      if (displayEmailElement)
-        displayEmailElement.textContent =
-          userData.email || "Email tidak tersedia";
-
-      updateImageDisplay(userData.profilePhoto, true);
-
-      // Update data di localStorage untuk konsistensi
-      UserModel.setCurrentUser(userData);
-    } catch (error) {
-      console.error("Error loading profile data:", error);
-      showToast(error.message, "error");
-      // Jika session tidak valid, UserModel akan otomatis logout
-      if (error.message.includes("Session tidak valid")) {
-        UserModel.logout();
-      }
     }
   };
 
