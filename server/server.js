@@ -347,88 +347,59 @@ const init = async () => {
   });
 
   server.route({
-    method: "PUT",
+    method: "GET",
     path: "/api/auth/profile",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
         if (!session) {
           return h
-            .response({
-              success: false,
-              message: "Session tidak valid",
-            })
+            .response({ success: false, message: "Session tidak valid" })
             .code(401);
         }
 
-        const userIndex = users.findIndex((u) => u.id === session.userId);
-        if (userIndex === -1) {
+        // --- PERBAIKAN: Ambil data user langsung dari Firestore, bukan dari memori ---
+        console.log(
+          `[PROFILE] - Fetching profile for user ID/email: ${session.userId}`
+        );
+
+        // session.userId seharusnya berisi email pengguna
+        const userRef = db.collection("users").doc(session.userId);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+          console.error(
+            `[PROFILE] - Failure: User document not found for ID ${session.userId}`
+          );
           return h
-            .response({
-              success: false,
-              message: "User tidak ditemukan",
-            })
+            .response({ success: false, message: "Data user tidak ditemukan" })
             .code(404);
         }
 
-        const { name } = request.payload;
+        const userData = userDoc.data();
 
-        if (!name || name.trim().length === 0) {
-          return h
-            .response({
-              success: false,
-              message: "Nama tidak boleh kosong",
-            })
-            .code(400);
-        }
+        console.log(`[PROFILE] - Success: Profile found for ${session.userId}`);
 
-        if (name.trim().length < 2) {
-          return h
-            .response({
-              success: false,
-              message: "Nama minimal 2 karakter",
-            })
-            .code(400);
-        }
-
-        if (name.trim().length > 50) {
-          return h
-            .response({
-              success: false,
-              message: "Nama maksimal 50 karakter",
-            })
-            .code(400);
-        }
-
-        users[userIndex] = {
-          ...users[userIndex],
-          name: name.trim(),
-          updatedAt: getCurrentDate(),
-        };
-
-        await saveUsers();
-
-        const updatedUser = {
-          id: users[userIndex].id,
-          name: users[userIndex].name,
-          email: users[userIndex].email,
-          createdAt: users[userIndex].createdAt,
-          updatedAt: users[userIndex].updatedAt,
-        };
-
+        // Kirim kembali data yang bersih (tanpa password hash)
         return {
           success: true,
-          message: "Profil berhasil diperbarui",
+          message: "Profil berhasil diambil",
           data: {
-            user: updatedUser,
+            user: {
+              id: userDoc.id,
+              name: userData.name,
+              email: userData.email,
+              createdAt: userData.createdAt,
+              updatedAt: userData.updatedAt,
+            },
           },
         };
       } catch (error) {
-        console.error("Update profile error:", error);
+        console.error("!!! FATAL ERROR in /api/auth/profile handler:", error);
         return h
           .response({
             success: false,
-            message: "Gagal memperbarui profil",
+            message: "Terjadi kesalahan internal pada server.",
           })
           .code(500);
       }
