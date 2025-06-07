@@ -1,9 +1,3 @@
-// Meng-import library yang dibutuhkan
-// ApiService tidak lagi digunakan di file ini, jadi bisa kita hapus atau biarkan.
-// import ApiService from "../../data/api.js";
-import { db, serverTimestamp } from "../../utils/firebase.js";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import bcrypt from "bcryptjs";
 import ApiService from "../../services/apiService";
 
 export default function RegisterPresenter() {
@@ -88,26 +82,17 @@ export default function RegisterPresenter() {
         const confirmPassword = document.getElementById("reg-confirm").value;
         const submitButton = form.querySelector('button[type="submit"]');
 
-        // Validasi input
-        if (!name) {
-          showNotification("❌ Nama tidak boleh kosong!", "warning");
-          return;
-        }
-        if (!email) {
-          showNotification("❌ Email tidak boleh kosong!", "warning");
-          return;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          showNotification("❌ Format email tidak valid!", "warning");
-          return;
-        }
-        if (password.length < 8) {
-          showNotification("❌ Password minimal 8 karakter!", "warning");
-          return;
-        }
-        if (password !== confirmPassword) {
-          showNotification("Periksa kembali password Anda!", "error");
+        // Validasi input di sisi client (sudah benar)
+        if (
+          !name ||
+          !email ||
+          password.length < 8 ||
+          password !== confirmPassword
+        ) {
+          showNotification(
+            "Harap periksa kembali semua isian Anda.",
+            "warning"
+          );
           return;
         }
 
@@ -115,34 +100,25 @@ export default function RegisterPresenter() {
         submitButton.textContent = "Mendaftar...";
 
         try {
-          // --- REGISTER LEWAT BACKEND ---
-          const result = await ApiService.register(name, email, password);
+          // --- PERBAIKAN UTAMA: Panggil ApiService untuk registrasi ---
+          // Tidak ada lagi interaksi langsung dengan Firebase di sini.
+          const result = await ApiService.register({ name, email, password });
 
           if (result.success) {
+            // Jika backend merespon dengan sukses
             showNotification("Registrasi berhasil! Silakan login.", "success");
             form.reset();
             setTimeout(() => {
               window.location.hash = "/login";
             }, 1500);
           } else {
+            // Jika backend mengembalikan pesan error (misal: email sudah ada)
             throw new Error(result.message || "Registrasi gagal!");
           }
         } catch (error) {
-          // Penanganan error
-          if (
-            error.message.includes("Email sudah terdaftar") ||
-            (error.response && error.response.status === 400)
-          ) {
-            showNotification(
-              "❌ Email sudah terdaftar! Silakan gunakan email lain atau login.",
-              "error"
-            );
-          } else {
-            showNotification(
-              `❌ ${error.message || "Terjadi kesalahan saat registrasi"}`,
-              "error"
-            );
-          }
+          // Menangani semua jenis error, termasuk error koneksi atau dari backend
+          console.error("Registration Error:", error);
+          showNotification(`❌ ${error.message}`, "error");
         } finally {
           submitButton.disabled = false;
           submitButton.textContent = "Daftar";
