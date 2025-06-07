@@ -49,8 +49,11 @@ const loadData = async () => {
     if (allIds.length > 0) {
       const maxId = Math.max(
         ...allIds.map((id) => {
-          const match = id.match(/id_\d+_(\d+)/);
-          return match ? parseInt(match[1]) : 0;
+          if (typeof id === "string") {
+            const match = id.match(/id_\d+_(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+          }
+          return 0;
         })
       );
       idCounter = maxId + 1;
@@ -790,7 +793,6 @@ const init = async () => {
         // Menjadi ini (menggunakan environment variable):
         const mlApiUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
         const mlResponse = await fetch(`${mlApiUrl}/predict`, {
-
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: request.payload.text }),
@@ -820,9 +822,7 @@ const init = async () => {
     },
   });
 
-
-
- // Graceful shutdown
+  // Graceful shutdown
   const gracefulShutdown = async () => {
     console.log("\nGraceful shutdown initiated...");
     try {

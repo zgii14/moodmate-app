@@ -1,5 +1,5 @@
 import { renderNavbar } from "../../components/Navbar";
-import { login } from "../../services/apiService";
+import ApiService from "../../services/apiService";
 import bcrypt from "bcryptjs";
 import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -169,7 +169,7 @@ export default function LoginPresenter() {
 
         try {
           // --- LOGIN LEWAT BACKEND ---
-          const result = await login(email, password);
+          const result = await ApiService.login(email, password);
 
           if (result.success) {
             window.dispatchEvent(

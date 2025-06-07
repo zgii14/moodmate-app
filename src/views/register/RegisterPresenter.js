@@ -4,7 +4,7 @@
 import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import bcrypt from "bcryptjs";
-import { register } from "../../services/apiService";
+import ApiService from "../../services/apiService";
 
 export default function RegisterPresenter() {
   function showNotification(message, type = "info") {
@@ -116,7 +116,7 @@ export default function RegisterPresenter() {
 
         try {
           // --- REGISTER LEWAT BACKEND ---
-          const result = await register(name, email, password);
+          const result = await ApiService.register(name, email, password);
 
           if (result.success) {
             showNotification("Registrasi berhasil! Silakan login.", "success");
