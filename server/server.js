@@ -753,6 +753,14 @@ const init = async () => {
     },
   });
 
+  server.route({
+    method: "OPTIONS",
+    path: "/api/{any*}",
+    handler: (request, h) => {
+      return h.response().code(200);
+    }
+  });
+
   // Graceful shutdown
   const gracefulShutdown = async () => {
     console.log("\nGraceful shutdown initiated...");
