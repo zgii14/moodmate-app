@@ -404,7 +404,7 @@ export default function ProfilPresenter() {
       const displayNameEl = document.getElementById("display-name");
       const displayEmailEl = document.getElementById("display-email");
       const editNameInputEl = document.getElementById("edit-name");
-
+  
       if (displayNameEl && displayEmailEl) {
         displayNameEl.textContent = userData.name || "Pengguna";
         displayEmailEl.textContent = userData.email || "Email";
@@ -412,9 +412,7 @@ export default function ProfilPresenter() {
         updateImageDisplay(userData.profilePhoto);
         console.log("Profile data displayed successfully.");
       } else {
-        console.error(
-          "Display elements not found! #display-name or #display-email is null."
-        );
+        console.error("Display elements not found! #display-name or #display-email is null.");
       }
     } catch (error) {
       console.error("Error displaying profile data:", error);
