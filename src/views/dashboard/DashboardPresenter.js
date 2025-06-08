@@ -139,9 +139,6 @@ export default function DashboardPresenter() {
     if (dominantMood) {
       setElementText("dominantMood", moodConfig[dominantMood].text);
       setElementHtml("dominantMoodIcon", moodConfig[dominantMood].icon);
-    } else {
-      setElementText("dominantMood", "Belum Ada Data");
-      setElementHtml("dominantMoodIcon", '<span class="text-2xl">❓</span>');
     }
 
     updateTodayMood(journalData);
@@ -233,7 +230,7 @@ export default function DashboardPresenter() {
     const validMoodStats = moodStats.filter((stat) => stat.count > 0);
 
     if (validMoodStats.length === 0) {
-      return null;
+      return Object.keys(moodConfig)[0];
     }
 
     validMoodStats.sort((a, b) => {

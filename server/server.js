@@ -13,25 +13,31 @@ const getCurrentDate = () => new Date().toISOString();
 const generateSessionId = () =>
   `firestore_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+// Firestore Session Helpers
 const SESSION_COLLECTION = "sessions";
 
+// Simpan session ke Firestore
 async function saveSessionToFirestore(sessionId, sessionData) {
   await db.collection(SESSION_COLLECTION).doc(sessionId).set(sessionData);
 }
 
+// Ambil session dari Firestore
 async function getSessionFromFirestore(sessionId) {
   const docSnap = await db.collection(SESSION_COLLECTION).doc(sessionId).get();
   return docSnap.exists ? docSnap.data() : null;
 }
 
+// Hapus session dari Firestore
 async function deleteSessionFromFirestore(sessionId) {
   await db.collection(SESSION_COLLECTION).doc(sessionId).delete();
 }
 
+// Load data users & journals dari Firestore (bukan session)
 const loadData = async () => {
   try {
     const userSnapshot = await db.collection("users").get();
 
+    // PERBAIKAN: Kita mengambil data DAN ID dokumennya
     users = userSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
     const journalSnapshot = await db.collection("journals").get();
@@ -44,6 +50,7 @@ const loadData = async () => {
       `✅ Successfully loaded ${users.length} users and ${journalEntries.length} journals.`
     );
 
+    // Update idCounter supaya tetap unik
     const allIds = [
       ...users.map((u) => u.id),
       ...journalEntries.map((j) => j.id),
@@ -65,9 +72,11 @@ const loadData = async () => {
   }
 };
 
+// Simpan users ke Firestore (Fungsi ini mungkin tidak lagi diperlukan jika registrasi langsung ke DB)
 const saveUsers = async () => {
   try {
     for (const user of users) {
+      // Menggunakan email sebagai ID dokumen agar konsisten dengan frontend
       await db
         .collection("users")
         .doc(user.email)
@@ -85,6 +94,7 @@ const saveUsers = async () => {
   }
 };
 
+// Simpan journals ke Firestore
 const saveJournals = async () => {
   try {
     for (const journal of journalEntries) {
@@ -101,6 +111,8 @@ const saveJournals = async () => {
     console.error("❌ Error saving journals to Firestore:", error);
   }
 };
+// Tambahkan di atas/before: const init = async () => {
+// Session validator (ambil dari Firestore)
 const validateSession = async (request) => {
   const sessionId = request.headers["x-session-id"];
   if (!sessionId) return null;
@@ -121,7 +133,7 @@ const init = async () => {
     host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ["*"], 
+        origin: ["*"], // Mengizinkan semua origin untuk development
         credentials: true,
         headers: [
           "Accept",
