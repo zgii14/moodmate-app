@@ -685,5 +685,3 @@ export default function ProfilPresenter() {
     updateImageDisplay,
   };
 }
-//test
-// perubahan
