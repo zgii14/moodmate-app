@@ -32,10 +32,10 @@ export default async function ContactView() {
             {
               name: "Muhammad Rozagi",
               role: "ML Engineer",
-              email: "rozagi@gmail.com",
-              instagram: "zagii",
-              linkedin: "muhammad rozagi",
-              img: "https://randomuser.me/api/portraits/women/44.jpg",
+              email: "muhammadrozagi09@gmail.com",
+              instagram: "zgiii_mr",
+              linkedin: "muhammadrozagi",
+              img: "/contact/jagi.jpg",
               gradient: "from-blue-500 to-indigo-500",
             },
             {
@@ -53,7 +53,7 @@ export default async function ContactView() {
               email: "jevonordrick53@gmail.com",
               instagram: "jeevonn_",
               linkedin: "jevon-ordrick-6583812b1",
-              img: "https://randomuser.me/api/portraits/women/47.jpg",
+              img: "/contact/Jevon.jpeg",
               gradient: "from-green-500 to-emerald-500",
             },
             {
@@ -62,7 +62,7 @@ export default async function ContactView() {
               email: "merlyyunipurnama@gmail.com",
               instagram: "merlyyunii",
               linkedin: "merly-yuni-purnama",
-              img: "https://randomuser.me/api/portraits/men/48.jpg",
+              img: "/contact/Merly.jpg",
               gradient: "from-orange-500 to-red-500",
             },
             {
