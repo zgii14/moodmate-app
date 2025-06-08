@@ -135,10 +135,16 @@ export default function DashboardPresenter() {
     const streak = calculateStreak(journalData);
     setElementText("streak", streak);
 
-    const dominantMood = getDominantMood(journalData);
-    if (dominantMood) {
-      setElementText("dominantMood", moodConfig[dominantMood].text);
-      setElementHtml("dominantMoodIcon", moodConfig[dominantMood].icon);
+    // Perbaikan untuk dominant mood
+    if (journalData.length === 0) {
+      setElementText("dominantMood", "Belum Ada Data");
+      setElementHtml("dominantMoodIcon", "❓");
+    } else {
+      const dominantMood = getDominantMood(journalData);
+      if (dominantMood) {
+        setElementText("dominantMood", moodConfig[dominantMood].text);
+        setElementHtml("dominantMoodIcon", moodConfig[dominantMood].icon);
+      }
     }
 
     updateTodayMood(journalData);
@@ -185,6 +191,11 @@ export default function DashboardPresenter() {
   }
 
   function getDominantMood(entries) {
+    // Tambahkan pengecekan jika tidak ada entries
+    if (!entries || entries.length === 0) {
+      return null;
+    }
+
     const moodGroups = {};
 
     Object.keys(moodConfig).forEach((mood) => {
@@ -230,7 +241,7 @@ export default function DashboardPresenter() {
     const validMoodStats = moodStats.filter((stat) => stat.count > 0);
 
     if (validMoodStats.length === 0) {
-      return Object.keys(moodConfig)[0];
+      return null; // Kembalikan null jika tidak ada mood yang valid
     }
 
     validMoodStats.sort((a, b) => {
@@ -372,20 +383,40 @@ export default function DashboardPresenter() {
 
     const sortedMoods = Object.entries(moodCounts).sort((a, b) => b[1] - a[1]);
 
-    if (sortedMoods.length > 0) {
+    // Perbaikan untuk most frequent dan least frequent mood
+    if (sortedMoods.length > 0 && totalEntries > 0) {
       const mostFrequent = sortedMoods[0];
       const leastFrequent = sortedMoods[sortedMoods.length - 1];
 
-      setElementText("mostFrequentMood", moodConfig[mostFrequent[0]].text);
-      setElementHtml("mostFrequentMoodIcon", moodConfig[mostFrequent[0]].icon);
-      setElementText("mostFrequentMoodCount", mostFrequent[1]);
+      // Hanya tampilkan jika ada data yang valid (count > 0)
+      if (mostFrequent[1] > 0) {
+        setElementText("mostFrequentMood", moodConfig[mostFrequent[0]].text);
+        setElementHtml("mostFrequentMoodIcon", moodConfig[mostFrequent[0]].icon);
+        setElementText("mostFrequentMoodCount", mostFrequent[1]);
+      } else {
+        setElementText("mostFrequentMood", "Belum Ada Data");
+        setElementHtml("mostFrequentMoodIcon", "❓");
+        setElementText("mostFrequentMoodCount", 0);
+      }
 
-      setElementText("leastFrequentMood", moodConfig[leastFrequent[0]].text);
-      setElementHtml(
-        "leastFrequentMoodIcon",
-        moodConfig[leastFrequent[0]].icon
-      );
-      setElementText("leastFrequentMoodCount", leastFrequent[1]);
+      if (leastFrequent[1] >= 0) {
+        setElementText("leastFrequentMood", moodConfig[leastFrequent[0]].text);
+        setElementHtml("leastFrequentMoodIcon", moodConfig[leastFrequent[0]].icon);
+        setElementText("leastFrequentMoodCount", leastFrequent[1]);
+      } else {
+        setElementText("leastFrequentMood", "Belum Ada Data");
+        setElementHtml("leastFrequentMoodIcon", "❓");
+        setElementText("leastFrequentMoodCount", 0);
+      }
+    } else {
+      // Jika tidak ada data sama sekali
+      setElementText("mostFrequentMood", "Belum Ada Data");
+      setElementHtml("mostFrequentMoodIcon", "❓");
+      setElementText("mostFrequentMoodCount", 0);
+      
+      setElementText("leastFrequentMood", "Belum Ada Data");
+      setElementHtml("leastFrequentMoodIcon", "❓");
+      setElementText("leastFrequentMoodCount", 0);
     }
   }
 
