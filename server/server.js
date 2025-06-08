@@ -167,7 +167,7 @@ const init = async () => {
   // Health check
   server.route({
     method: "GET",
-    path: "/api/health",
+    path: "/health",
     handler: (request, h) => ({
       status: "OK",
       message: "MoodMate Auth API is running",
@@ -178,7 +178,7 @@ const init = async () => {
   // Register
   server.route({
     method: "POST",
-    path: "/api/auth/register",
+    path: "/auth/register",
     handler: async (request, h) => {
       try {
         const { name, email, password } = request.payload;
@@ -211,7 +211,7 @@ const init = async () => {
           .response({ success: true, message: "User berhasil didaftarkan" })
           .code(201);
       } catch (error) {
-        console.error("!!! FATAL ERROR in /api/auth/register handler:", error);
+        console.error("!!! FATAL ERROR in /auth/register handler:", error);
         return h
           .response({
             success: false,
@@ -227,7 +227,7 @@ const init = async () => {
   // Login
   server.route({
     method: "POST",
-    path: "/api/auth/login",
+    path: "/auth/login",
     handler: async (request, h) => {
       try {
         const { email, password } = request.payload;
@@ -285,7 +285,7 @@ const init = async () => {
           })
           .header("x-session-id", sessionId);
       } catch (error) {
-        console.error("!!! FATAL ERROR in /api/auth/login handler:", error);
+        console.error("!!! FATAL ERROR in /auth/login handler:", error);
         return h
           .response({
             success: false,
@@ -299,7 +299,7 @@ const init = async () => {
   // Logout
   server.route({
     method: "POST",
-    path: "/api/auth/logout",
+    path: "/auth/logout",
     handler: async (request, h) => {
       const sessionId = request.headers["x-session-id"];
       if (sessionId) {
@@ -314,7 +314,7 @@ const init = async () => {
 
   server.route({
     method: "GET",
-    path: "/api/auth/profile",
+    path: "/auth/profile",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -351,7 +351,7 @@ const init = async () => {
           },
         };
       } catch (error) {
-        console.error("!!! FATAL ERROR in /api/auth/profile handler:", error);
+        console.error("!!! FATAL ERROR in /auth/profile handler:", error);
         return h
           .response({
             success: false,
@@ -364,7 +364,7 @@ const init = async () => {
   // TAMBAHKAN ROUTE BARU UNTUK UPDATE FOTO PROFIL
   server.route({
     method: "PUT",
-    path: "/api/auth/profile-photo",
+    path: "/auth/profile-photo",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -395,7 +395,7 @@ const init = async () => {
           })
           .code(200);
       } catch (error) {
-        console.error("!!! ERROR in /api/auth/profile-photo PUT:", error);
+        console.error("!!! ERROR in /auth/profile-photo PUT:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -406,7 +406,7 @@ const init = async () => {
   // TAMBAHKAN ROUTE BARU UNTUK RESET FOTO PROFIL
   server.route({
     method: "DELETE",
-    path: "/api/auth/profile-photo",
+    path: "/auth/profile-photo",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -429,7 +429,7 @@ const init = async () => {
           .response({ success: true, message: "Foto profil berhasil direset" })
           .code(200);
       } catch (error) {
-        console.error("!!! ERROR in /api/auth/profile-photo DELETE:", error);
+        console.error("!!! ERROR in /auth/profile-photo DELETE:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -438,7 +438,7 @@ const init = async () => {
   });
   server.route({
     method: "PUT",
-    path: "/api/auth/change-password",
+    path: "/auth/change-password",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -558,7 +558,7 @@ const init = async () => {
 
   server.route({
     method: "POST",
-    path: "/api/journal",
+    path: "/journal",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -593,7 +593,7 @@ const init = async () => {
           })
           .code(201);
       } catch (error) {
-        console.error("!!! ERROR in /api/journal POST:", error);
+        console.error("!!! ERROR in /journal POST:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -604,7 +604,7 @@ const init = async () => {
   // MENDAPATKAN SEMUA JURNAL PENGGUNA
   server.route({
     method: "GET",
-    path: "/api/journal",
+    path: "/journal",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -631,7 +631,7 @@ const init = async () => {
           total: journals.length,
         });
       } catch (error) {
-        console.error("!!! ERROR in /api/journal GET:", error);
+        console.error("!!! ERROR in /journal GET:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -642,7 +642,7 @@ const init = async () => {
   // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({
     method: "GET",
-    path: "/api/journal/{id}",
+    path: "/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -674,7 +674,7 @@ const init = async () => {
           data: { id: docSnap.id, ...journalData },
         });
       } catch (error) {
-        console.error(`!!! ERROR in /api/journal/{id} GET:`, error);
+        console.error(`!!! ERROR in /journal/{id} GET:`, error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -684,7 +684,7 @@ const init = async () => {
   // MENGHAPUS JURNAL
   server.route({
     method: "DELETE",
-    path: "/api/journal/{id}",
+    path: "/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -717,7 +717,7 @@ const init = async () => {
           message: "Jurnal berhasil dihapus",
         });
       } catch (error) {
-        console.error(`!!! ERROR in /api/journal/{id} DELETE:`, error);
+        console.error(`!!! ERROR in /journal/{id} DELETE:`, error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -728,7 +728,7 @@ const init = async () => {
   // Predict Mood
   server.route({
     method: "POST",
-    path: "/api/predict-mood",
+    path: "/predict-mood",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
