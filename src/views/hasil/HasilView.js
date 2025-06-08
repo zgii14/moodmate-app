@@ -169,10 +169,6 @@ export default async function JournalResultView() {
             before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent 
             before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
           <span class="relative z-10 text-2xl group-hover:animate-pulse transition-all duration-300 group-hover:scale-125">📤</span>
-          <div class="relative z-10 flex flex-col items-start">
-            <span class="text-lg font-bold">Bagikan Mood</span>
-            <span class="text-xs text-white/80 font-normal">Bagikan ke teman</span>
-          </div>
           <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent 
                       translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
         </button>
