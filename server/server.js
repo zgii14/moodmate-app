@@ -133,7 +133,7 @@ const init = async () => {
     host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ["*"], // Mengizinkan semua origin untuk development
+        origin: ["https://moodmate.up.railway.app"], // Mengizinkan semua origin untuk development
         credentials: true,
         headers: [
           "Accept",
