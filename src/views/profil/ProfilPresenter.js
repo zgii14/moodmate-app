@@ -419,26 +419,33 @@ export default function ProfilPresenter() {
   const handleSaveProfile = async () => {
     setSaveButtonLoading(true);
     try {
-      const editNameInput = document.getElementById("edit-name");
-      const editPasswordInput = document.getElementById("edit-password");
-      const editPasswordConfirmInput = document.getElementById("edit-password-confirm");
-  
-      if (!editNameInput || !editPasswordInput || !editPasswordConfirmInput) {
-        throw new Error("Form elements tidak ditemukan");
+      // LANGKAH 1: Ambil data pengguna yang sedang login dari UserModel
+      const currentUser = UserModel.getCurrent();
+      if (!currentUser || !currentUser.email) {
+        throw new Error("Gagal mendapatkan data pengguna. Silakan login ulang.");
       }
   
-      const newName = editNameInput.value.trim();
-      const newPassword = editPasswordInput.value;
-      const confirmPassword = editPasswordConfirmInput.value;
+      const newName = document.getElementById("edit-name").value.trim();
+      const newPassword = document.getElementById("edit-password").value;
+      const confirmPassword = document.getElementById("edit-password-confirm").value;
   
-      if (!newName) throw new Error("Nama tidak boleh kosong.");
+      if (!newName) {
+        throw new Error("Nama tidak boleh kosong.");
+      }
   
-      const nameError = validateName(newName);
-      if (nameError) throw new Error(nameError);
+      // Hanya update nama jika berubah
+      if (newName !== currentUser.name) {
+        console.log("Updating name...");
+        // LANGKAH 2: Sertakan email saat mengirim data nama baru
+        const profileResult = await ApiService.updateProfile({
+          name: newName,
+          email: currentUser.email, // <-- INI BAGIAN PENTING YANG MEMPERBAIKI MASALAH
+        });
   
-      const profileResult = await ApiService.updateProfile({ name: newName });
-      if (!profileResult.success)
-        throw new Error(profileResult.message || "Gagal memperbarui nama.");
+        if (!profileResult.success) {
+          throw new Error(profileResult.message || "Gagal memperbarui nama.");
+        }
+      }  
   
       if (newPassword) {
         const passwordError = validatePassword(newPassword, confirmPassword);
