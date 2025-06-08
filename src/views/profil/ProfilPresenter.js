@@ -383,7 +383,7 @@ export default function ProfilPresenter() {
       saveBtn.classList.remove("opacity-70", "cursor-not-allowed");
     }
   };
-
+// anjay perubahan
   const loadAndDisplayProfile = async () => {
     try {
       const userData = await UserModel.getProfile();
