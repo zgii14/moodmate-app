@@ -44,7 +44,7 @@ export default async function ContactView() {
               email: "steviulpa@gmail.com",
               instagram: "stevijuliana",
               linkedin: "Ulfa Stevi Juliana",
-              img: "https://drive.google.com/file/d/1Bfrbs4NFoe2rVu-evMXwSqExzX_gZhHb/view?usp=sharing",
+              img: "/contact/Ulfa.jpg",
               gradient: "from-purple-500 to-pink-500",
             },
             {
@@ -71,7 +71,7 @@ export default async function ContactView() {
               email: "dianardiyantii09@google.com",
               instagram: "dianardiyantii",
               linkedin: "dian ardiyanti saputri",
-              img: "https://drive.google.com/file/d/1VzbCow4F5uDeKNg2mj79h_AuDzeJ2qkI/view?usp=sharing",
+              img: "/contact/dian.jpg",
               gradient: "from-pink-500 to-rose-500",
             },
             {
@@ -80,7 +80,7 @@ export default async function ContactView() {
               email: "reisya.septriana03@gmail.com",
               instagram: "reveriechaa",
               linkedin: "Reisya Septriana Rizky Humaira",
-              img: "https://drive.google.com/file/d/1YA39O08u4ArVqOPR3mcrumHDF9s9z3_K/view?usp=sharing",
+              img: "/contact/Reisya.jpg",
               gradient: "from-teal-500 to-cyan-500",
             },
           ]
