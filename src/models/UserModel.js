@@ -34,9 +34,9 @@ export const UserModel = {
         console.warn("User not authenticated, cannot get profile");
         return null;
       }
-
+  
       const response = await ApiService.getProfile();
-
+  
       if (!response || !response.success) {
         console.error("Error getting user profile:", response?.message);
         
@@ -46,8 +46,9 @@ export const UserModel = {
         
         return null;
       }
-
-      let userData = response.data;
+  
+      // PERBAIKAN: Akses data.user, bukan langsung data
+      let userData = response.data?.user || response.data;
     
       if (!userData || typeof userData !== "object" || !userData.email) {
         console.error("Invalid user data received from API:", userData);
@@ -247,13 +248,22 @@ export const UserModel = {
   // Mengambil profil dari backend dan memperbarui localStorage
   async refreshProfile() {
     if (!this.isLoggedIn()) return null;
-
+  
     const result = await ApiService.getProfile();
     if (result && result.success) {
-      const user = result.data.user;
-      localStorage.setItem("moodmate-user", JSON.stringify(user));
-      return user;
+      // PERBAIKAN: Akses data.user, bukan data.user langsung
+      const user = result.data?.user || result.data;
+      
+      if (user && typeof user === "object" && user.email) {
+        localStorage.setItem("moodmate-user", JSON.stringify(user));
+        return user;
+      } else {
+        console.error("Invalid user data from refreshProfile:", user);
+        this.logout();
+        return null;
+      }
     } else {
+      console.error("Failed to refresh profile:", result?.message);
       this.logout();
       return null;
     }

@@ -114,7 +114,9 @@ const ApiService = {
   // --- Endpoint Profil Pengguna (BARU & DIPERBARUI) ---
   // --- Endpoint Profil Pengguna ---
   async getProfile() {
-    return this.makeRequest("/auth/profile", { method: "GET" });
+    return this.makeRequest("/auth/profile", { 
+      method: "GET" 
+    });
   },
   async updateProfile(updateData) {
     return this.makeRequest("/auth/profile", {
@@ -129,16 +131,17 @@ const ApiService = {
     });
   },
   async updateProfilePhoto(imageData) {
-    // imageData adalah string base64
+    // PERBAIKAN: Pastikan payload sesuai dengan backend
     return this.makeRequest("/auth/profile-photo", {
-      // Pastikan path API-nya benar
       method: "PUT",
-      body: JSON.stringify({ profilePhoto: imageData }),
+      body: JSON.stringify({ 
+        profilePhoto: imageData 
+      }),
     });
   },
   async resetProfilePhoto() {
+    // PERBAIKAN: Gunakan method DELETE untuk reset
     return this.makeRequest("/auth/profile-photo", {
-      // Kita gunakan endpoint yang sama dengan method berbeda
       method: "DELETE",
     });
   },

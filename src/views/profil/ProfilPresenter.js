@@ -1,4 +1,4 @@
-import ApiService from "../../data/api.js";
+import ApiService from "../../services/apiService";
 import { UserModel } from "../../models/UserModel.js";
 
 export default function ProfilPresenter() {
@@ -176,14 +176,19 @@ export default function ProfilPresenter() {
       reader.onload = async (e) => {
         try {
           const imageData = e.target.result;
-
+      
           const result = await ApiService.updateProfilePhoto(imageData);
           if (!result.success) {
             throw new Error(result.message || "Gagal mengunggah foto.");
           }
-
+      
+          // PERBAIKAN: Update UI dan localStorage
           updateImageDisplay(imageData);
           UserModel.updateProfilePhoto(imageData);
+          
+          // PERBAIKAN: Refresh profile dari backend untuk sinkronisasi
+          await UserModel.getProfile();
+          
           hidePhotoModal();
           showToast("Foto profil berhasil diperbarui!");
           updateLastModified();
@@ -259,9 +264,14 @@ export default function ProfilPresenter() {
       if (!result.success) {
         throw new Error(result.message || "Gagal mereset foto.");
       }
-
+  
+      // PERBAIKAN: Update UI dan localStorage
       UserModel.updateProfilePhoto(null);
       updateImageDisplay(null);
+      
+      // PERBAIKAN: Refresh profile dari backend untuk sinkronisasi
+      await UserModel.getProfile();
+      
       hidePhotoModal();
       showToast("Foto profil berhasil direset ke default!");
       updateLastModified();
@@ -396,7 +406,8 @@ export default function ProfilPresenter() {
   const loadAndDisplayProfile = async () => {
     console.log("Attempting to load and display profile...");
     try {
-      const userData = await UserModel.refreshProfile();
+      // PERBAIKAN: Gunakan getProfile() langsung, bukan refreshProfile()
+      const userData = await UserModel.getProfile();
       if (!userData) {
         throw new Error("Sesi tidak valid atau gagal memuat profil.");
       }
@@ -409,8 +420,16 @@ export default function ProfilPresenter() {
         displayNameEl.textContent = userData.name || "Pengguna";
         displayEmailEl.textContent = userData.email || "Email";
         if (editNameInputEl) editNameInputEl.value = userData.name || "";
-        updateImageDisplay(userData.profilePhoto);
-        console.log("Profile data displayed successfully.");
+        
+        // PERBAIKAN: Periksa profilePhoto dengan benar
+        const photoUrl = userData.profilePhoto || UserModel.getProfilePhoto();
+        updateImageDisplay(photoUrl);
+        
+        console.log("Profile data displayed successfully:", {
+          name: userData.name,
+          email: userData.email,
+          hasPhoto: !!photoUrl
+        });
       } else {
         console.error("Display elements not found! #display-name or #display-email is null.");
       }
@@ -426,38 +445,41 @@ export default function ProfilPresenter() {
       const editNameInput = document.getElementById("edit-name");
       const editPasswordInput = document.getElementById("edit-password");
       const editPasswordConfirmInput = document.getElementById("edit-password-confirm");
-
+  
       if (!editNameInput || !editPasswordInput || !editPasswordConfirmInput) {
         throw new Error("Form elements tidak ditemukan");
       }
-
+  
       const newName = editNameInput.value.trim();
       const newPassword = editPasswordInput.value;
       const confirmPassword = editPasswordConfirmInput.value;
-
+  
       if (!newName) throw new Error("Nama tidak boleh kosong.");
-
+  
       // Validasi nama
       const nameError = validateName(newName);
       if (nameError) throw new Error(nameError);
-
-      // Mengirim permintaan update nama ke backend
+  
+      // PERBAIKAN: Update nama terlebih dahulu
       const profileResult = await ApiService.updateProfile({ name: newName });
       if (!profileResult.success)
         throw new Error(profileResult.message || "Gagal memperbarui nama.");
-
+  
       // Jika ada password baru, kirim juga ke backend
       if (newPassword) {
         const passwordError = validatePassword(newPassword, confirmPassword);
         if (passwordError) throw new Error(passwordError);
-
+  
         const passwordResult = await ApiService.changePassword({ newPassword });
         if (!passwordResult.success)
           throw new Error(passwordResult.message || "Gagal mengubah password.");
       }
-
+  
       showToast("Profil berhasil diperbarui!", "success");
+      
+      // PERBAIKAN: Refresh dari backend untuk memastikan data terbaru
       await loadAndDisplayProfile();
+      
       toggleEditMode(false);
       clearEditForm();
     } catch (error) {
