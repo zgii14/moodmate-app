@@ -43,55 +43,55 @@ export default function ProfilPresenter() {
     }, 3000);
   };
 
-  // const setLoadingState = (isLoading) => {
-  //   const changePhotoBtn = document.getElementById("change-photo-btn");
-  //   const resetPhotoBtn = document.getElementById("reset-photo-btn");
-  //   const photoOverlay = document.getElementById("photo-overlay");
+  const setLoadingState = (isLoading) => {
+    const changePhotoBtn = document.getElementById("change-photo-btn");
+    const resetPhotoBtn = document.getElementById("reset-photo-btn");
+    const photoOverlay = document.getElementById("photo-overlay");
 
-  //   if (changePhotoBtn) {
-  //     changePhotoBtn.disabled = isLoading;
+    if (changePhotoBtn) {
+      changePhotoBtn.disabled = isLoading;
 
-  //     if (!changePhotoBtn.dataset.originalHtml) {
-  //       changePhotoBtn.dataset.originalHtml = changePhotoBtn.innerHTML;
-  //     }
+      if (!changePhotoBtn.dataset.originalHtml) {
+        changePhotoBtn.dataset.originalHtml = changePhotoBtn.innerHTML;
+      }
 
-  //     if (isLoading) {
-  //       changePhotoBtn.innerHTML = `
-  //       <svg class="w-5 h-5 inline-block mr-2 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-  //       </svg>
-  //       <span class="whitespace-nowrap">Memuat...</span>
-  //     `;
-  //     } else {
-  //       changePhotoBtn.innerHTML =
-  //         changePhotoBtn.dataset.originalHtml ||
-  //         `
-  //       <svg class="w-5 h-5 inline-block mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-  //       </svg>
-  //       <span class="whitespace-nowrap">Ubah Foto Profil</span>
-  //     `;
-  //     }
+      if (isLoading) {
+        changePhotoBtn.innerHTML = `
+        <svg class="w-5 h-5 inline-block mr-2 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="whitespace-nowrap">Memuat...</span>
+      `;
+      } else {
+        changePhotoBtn.innerHTML =
+          changePhotoBtn.dataset.originalHtml ||
+          `
+        <svg class="w-5 h-5 inline-block mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span class="whitespace-nowrap">Ubah Foto Profil</span>
+      `;
+      }
 
-  //     changePhotoBtn.offsetHeight;
-  //   }
+      changePhotoBtn.offsetHeight;
+    }
 
-  //   if (resetPhotoBtn) {
-  //     resetPhotoBtn.disabled = isLoading;
+    if (resetPhotoBtn) {
+      resetPhotoBtn.disabled = isLoading;
 
-  //     if (isLoading) {
-  //       resetPhotoBtn.style.opacity = "0.5";
-  //       resetPhotoBtn.style.pointerEvents = "none";
-  //     } else {
-  //       resetPhotoBtn.style.opacity = "";
-  //       resetPhotoBtn.style.pointerEvents = "";
-  //     }
-  //   }
+      if (isLoading) {
+        resetPhotoBtn.style.opacity = "0.5";
+        resetPhotoBtn.style.pointerEvents = "none";
+      } else {
+        resetPhotoBtn.style.opacity = "";
+        resetPhotoBtn.style.pointerEvents = "";
+      }
+    }
 
-  //   if (photoOverlay) {
-  //     photoOverlay.style.pointerEvents = isLoading ? "none" : "auto";
-  //   }
-  // };
+    if (photoOverlay) {
+      photoOverlay.style.pointerEvents = isLoading ? "none" : "auto";
+    }
+  };
 
   const updateImageDisplay = (imageData) => {
     const profileImg = document.getElementById("profile-photo-preview");
@@ -177,15 +177,13 @@ export default function ProfilPresenter() {
         try {
           const imageData = e.target.result;
 
-          // --- BAGIAN YANG DIUBAH ---
           const result = await ApiService.updateProfilePhoto(imageData);
           if (!result.success) {
             throw new Error(result.message || "Gagal mengunggah foto.");
           }
-          // --- AKHIR BAGIAN YANG DIUBAH ---
 
           updateImageDisplay(imageData);
-          UserModel.updateProfilePhoto(imageData); // Tetap update localStorage
+          UserModel.updateProfilePhoto(imageData);
           hidePhotoModal();
           showToast("Foto profil berhasil diperbarui!");
           updateLastModified();
@@ -256,13 +254,11 @@ export default function ProfilPresenter() {
   const resetToDefault = async () => {
     try {
       setLoadingState(true);
-      // --- BAGIAN YANG DIUBAH ---
-      // Kita akan buat fungsi ini di ApiService selanjutnya
+      
       const result = await ApiService.resetProfilePhoto();
       if (!result.success) {
         throw new Error(result.message || "Gagal mereset foto.");
       }
-      // --- AKHIR BAGIAN YANG DIUBAH ---
 
       UserModel.updateProfilePhoto(null);
       updateImageDisplay(null);
@@ -341,17 +337,17 @@ export default function ProfilPresenter() {
       }
     }
   };
-  // --- FUNGSI INI DIUBAH ---
+
   const handleEditProfile = () => {
     const isCurrentlyEditing = !document
       .getElementById("profile-edit-mode")
       .classList.contains("hidden");
+    
     if (isCurrentlyEditing) {
       clearEditForm();
       toggleEditMode(false);
     } else {
       try {
-        // Mengambil data dari UserModel, bukan memanggil fungsi yang sudah dihapus
         const userData = UserModel.getCurrent();
         if (!userData) {
           showToast(
@@ -404,6 +400,7 @@ export default function ProfilPresenter() {
       if (!userData) {
         throw new Error("Sesi tidak valid atau gagal memuat profil.");
       }
+      
       const displayNameEl = document.getElementById("display-name");
       const displayEmailEl = document.getElementById("display-email");
       const editNameInputEl = document.getElementById("edit-name");
@@ -424,16 +421,27 @@ export default function ProfilPresenter() {
       showToast(error.message, "error");
     }
   };
+
   const handleSaveProfile = async () => {
     setSaveButtonLoading(true);
     try {
-      const newName = document.getElementById("edit-name").value.trim();
-      const newPassword = document.getElementById("edit-password").value;
-      const confirmPassword = document.getElementById(
-        "edit-password-confirm"
-      ).value;
+      const editNameInput = document.getElementById("edit-name");
+      const editPasswordInput = document.getElementById("edit-password");
+      const editPasswordConfirmInput = document.getElementById("edit-password-confirm");
+
+      if (!editNameInput || !editPasswordInput || !editPasswordConfirmInput) {
+        throw new Error("Form elements tidak ditemukan");
+      }
+
+      const newName = editNameInput.value.trim();
+      const newPassword = editPasswordInput.value;
+      const confirmPassword = editPasswordConfirmInput.value;
 
       if (!newName) throw new Error("Nama tidak boleh kosong.");
+
+      // Validasi nama
+      const nameError = validateName(newName);
+      if (nameError) throw new Error(nameError);
 
       // Mengirim permintaan update nama ke backend
       const profileResult = await ApiService.updateProfile({ name: newName });
@@ -442,12 +450,9 @@ export default function ProfilPresenter() {
 
       // Jika ada password baru, kirim juga ke backend
       if (newPassword) {
-        if (newPassword !== confirmPassword)
-          throw new Error("Konfirmasi password tidak cocok.");
-        if (newPassword.length < 6)
-          throw new Error("Password baru minimal 6 karakter.");
+        const passwordError = validatePassword(newPassword, confirmPassword);
+        if (passwordError) throw new Error(passwordError);
 
-        // Backend yang aman akan meminta password lama di sini
         const passwordResult = await ApiService.changePassword({ newPassword });
         if (!passwordResult.success)
           throw new Error(passwordResult.message || "Gagal mengubah password.");
@@ -456,7 +461,9 @@ export default function ProfilPresenter() {
       showToast("Profil berhasil diperbarui!", "success");
       await loadAndDisplayProfile();
       toggleEditMode(false);
+      clearEditForm();
     } catch (error) {
+      console.error("Error saving profile:", error);
       showToast(`Gagal: ${error.message}`, "error");
     } finally {
       setSaveButtonLoading(false);
@@ -465,9 +472,7 @@ export default function ProfilPresenter() {
 
   const clearEditForm = () => {
     const editPasswordInput = document.getElementById("edit-password");
-    const editPasswordConfirmInput = document.getElementById(
-      "edit-password-confirm"
-    );
+    const editPasswordConfirmInput = document.getElementById("edit-password-confirm");
 
     if (editPasswordInput) editPasswordInput.value = "";
     if (editPasswordConfirmInput) editPasswordConfirmInput.value = "";
@@ -534,15 +539,12 @@ export default function ProfilPresenter() {
   const init = () => {
     if (typeof document === "undefined") return;
 
-    // Fungsi yang akan menjalankan setup utama
     const runSetup = () => {
-      // Pastikan setup belum pernah dijalankan sebelumnya
       if (document.body.dataset.presenterInitialized === "true") {
         return;
       }
       setupEventListeners();
       loadAndDisplayProfile();
-      // Tandai bahwa setup sudah selesai untuk mencegah pemanggilan ganda
       document.body.dataset.presenterInitialized = "true";
     };
 
@@ -563,27 +565,23 @@ export default function ProfilPresenter() {
       return allExist;
     };
 
-    // Coba jalankan setup pertama kali
     if (waitForElements()) {
       runSetup();
       return;
     }
 
-    // Jika elemen belum ada, gunakan MutationObserver untuk menunggu
     const observer = new MutationObserver((mutations, obs) => {
       if (waitForElements()) {
         runSetup();
-        obs.disconnect(); // Hentikan observasi setelah setup berhasil
+        obs.disconnect();
       }
     });
 
-    // Mulai mengamati perubahan pada body
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
 
-    // Hapus penanda saat halaman berganti untuk memastikan presenter bisa inisialisasi ulang
     window.addEventListener(
       "hashchange",
       () => {
@@ -594,4 +592,14 @@ export default function ProfilPresenter() {
   };
 
   init();
+
+  return {
+    init,
+    loadAndDisplayProfile,
+    resetToDefault,
+    handleEditProfile,
+    handleSaveProfile,
+    handleCancelEdit,
+    updateImageDisplay,
+  };
 }
