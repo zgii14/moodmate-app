@@ -117,10 +117,14 @@ export default function ProfilPresenter() {
   };
 
   const showPhotoModal = () => {
+    console.log("showPhotoModal called");
     const modal = document.getElementById("photo-options-modal");
     if (modal) {
       modal.classList.remove("hidden");
       modal.classList.add("flex");
+      console.log("Modal shown successfully");
+    } else {
+      console.error("Modal element not found!");
     }
   };
 
@@ -317,18 +321,9 @@ export default function ProfilPresenter() {
   };
 
   const toggleEditMode = (isEditing) => {
-    console.log("Toggling edit mode:", isEditing); // Debug log
-    
     const viewMode = document.getElementById("profile-view-mode");
     const editMode = document.getElementById("profile-edit-mode");
     const editBtn = document.getElementById("edit-profile-btn");
-
-    // Log untuk debugging
-    console.log("Elements found:", {
-      viewMode: !!viewMode,
-      editMode: !!editMode,
-      editBtn: !!editBtn
-    });
 
     if (viewMode && editMode && editBtn) {
       if (isEditing) {
@@ -340,8 +335,6 @@ export default function ProfilPresenter() {
           </svg>
         `;
         editBtn.title = "Batal Edit";
-        editBtn.classList.add("bg-red-500", "hover:bg-red-600");
-        editBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
       } else {
         viewMode.classList.remove("hidden");
         editMode.classList.add("hidden");
@@ -351,28 +344,15 @@ export default function ProfilPresenter() {
           </svg>
         `;
         editBtn.title = "Edit Profile";
-        editBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
-        editBtn.classList.remove("bg-red-500", "hover:bg-red-600");
       }
-    } else {
-      console.error("Required elements not found for toggleEditMode");
     }
   };
 
-  const handleEditProfile = (event) => {
-    console.log("handleEditProfile called"); // Debug log
-    
-    // Prevent default jika ada
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
+  const handleEditProfile = () => {
+    console.log("handleEditProfile called");
     const isCurrentlyEditing = !document
       .getElementById("profile-edit-mode")
-      ?.classList.contains("hidden");
-      
-    console.log("Currently editing:", isCurrentlyEditing); // Debug log
+      .classList.contains("hidden");
     
     if (isCurrentlyEditing) {
       clearEditForm();
@@ -518,259 +498,259 @@ export default function ProfilPresenter() {
     toggleEditMode(false);
   };
 
-  // PERBAIKAN: Setup event listeners yang lebih robust
   const setupEventListeners = () => {
     console.log("Setting up event listeners...");
     
-    // Remove existing listeners to prevent duplicates
-    const removeExistingListeners = () => {
-      const elements = [
-        'edit-profile-btn',
-        'save-profile-btn', 
-        'cancel-edit-btn',
-        'change-photo-btn',
-        'upload-photo-btn',
-        'reset-photo-btn',
-        'cancel-photo-options'
-      ];
-      
-      elements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          // Clone element to remove all listeners
-          const newEl = el.cloneNode(true);
-          el.parentNode.replaceChild(newEl, el);
+    // Get all elements with detailed logging
+    const elements = {
+      uploadInput: document.getElementById("upload-photo"),
+      changePhotoBtn: document.getElementById("change-photo-btn"),
+      photoOverlay: document.getElementById("photo-overlay"),
+      uploadPhotoBtn: document.getElementById("upload-photo-btn"),
+      resetPhotoBtn: document.getElementById("reset-photo-btn"),
+      cancelPhotoBtn: document.getElementById("cancel-photo-options"),
+      photoModal: document.getElementById("photo-options-modal"),
+      editBtn: document.getElementById("edit-profile-btn"),
+      saveBtn: document.getElementById("save-profile-btn"),
+      cancelBtn: document.getElementById("cancel-edit-btn")
+    };
+
+    // Log which elements are found/missing
+    Object.entries(elements).forEach(([key, element]) => {
+      if (!element) {
+        console.warn(`Element not found: ${key} (#${key.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '').replace(/btn$/, 'btn')})`);
+      } else {
+        console.log(`Element found: ${key}`);
+      }
+    });
+
+    // Photo-related event listeners
+    if (elements.changePhotoBtn) {
+      elements.changePhotoBtn.addEventListener("click", (e) => {
+        console.log("Change photo button clicked");
+        e.preventDefault();
+        showPhotoModal();
+      });
+      console.log("✓ Change photo button listener attached");
+    }
+    
+    if (elements.photoOverlay) {
+      elements.photoOverlay.addEventListener("click", (e) => {
+        console.log("Photo overlay clicked");
+        e.preventDefault();
+        showPhotoModal();
+      });
+      console.log("✓ Photo overlay listener attached");
+    }
+    
+    if (elements.uploadPhotoBtn && elements.uploadInput) {
+      elements.uploadPhotoBtn.addEventListener("click", () => {
+        console.log("Upload photo button clicked");
+        elements.uploadInput.click();
+      });
+      console.log("✓ Upload photo button listener attached");
+    }
+    
+    if (elements.resetPhotoBtn) {
+      elements.resetPhotoBtn.addEventListener("click", (e) => {
+        console.log("Reset photo button clicked");
+        e.preventDefault();
+        showConfirmDialog();
+      });
+      console.log("✓ Reset photo button listener attached");
+    }
+    
+    if (elements.cancelPhotoBtn) {
+      elements.cancelPhotoBtn.addEventListener("click", (e) => {
+        console.log("Cancel photo button clicked");
+        e.preventDefault();
+        hidePhotoModal();
+      });
+      console.log("✓ Cancel photo button listener attached");
+    }
+    
+    if (elements.uploadInput) {
+      elements.uploadInput.addEventListener("change", handlePhotoUpload);
+      console.log("✓ Upload input listener attached");
+    }
+
+    if (elements.photoModal) {
+      elements.photoModal.addEventListener("click", (e) => {
+        if (e.target === elements.photoModal) {
+          console.log("Modal backdrop clicked");
+          hidePhotoModal();
         }
       });
-    };
+      console.log("✓ Photo modal listener attached");
+    }
 
-    // Setup photo-related event listeners
-    const setupPhotoListeners = () => {
-      const uploadInput = document.getElementById("upload-photo");
-      const changePhotoBtn = document.getElementById("change-photo-btn");
-      const photoOverlay = document.getElementById("photo-overlay");
-      const uploadPhotoBtn = document.getElementById("upload-photo-btn");
-      const resetPhotoBtn = document.getElementById("reset-photo-btn");
-      const cancelPhotoBtn = document.getElementById("cancel-photo-options");
-      const photoModal = document.getElementById("photo-options-modal");
-
-      if (changePhotoBtn) {
-        changePhotoBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("Change photo button clicked");
-          showPhotoModal();
-        });
-      }
-
-      if (photoOverlay) {
-        photoOverlay.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showPhotoModal();
-        });
-      }
-
-      if (uploadPhotoBtn) {
-        uploadPhotoBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          uploadInput?.click();
-        });
-      }
-
-      if (resetPhotoBtn) {
-        resetPhotoBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showConfirmDialog();
-        });
-      }
-
-      if (cancelPhotoBtn) {
-        cancelPhotoBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          hidePhotoModal();
-        });
-      }
-
-      if (uploadInput) {
-        uploadInput.addEventListener("change", handlePhotoUpload);
-      }
-
-      if (photoModal) {
-        photoModal.addEventListener("click", (e) => {
-          if (e.target === photoModal) {
-            hidePhotoModal();
-          }
-        });
-      }
-    };
-
-    // Setup profile edit listeners with better error handling
-    const setupProfileListeners = () => {
-      const editBtn = document.getElementById("edit-profile-btn");
-      const saveBtn = document.getElementById("save-profile-btn");
-      const cancelBtn = document.getElementById("cancel-edit-btn");
-
-      console.log("Profile elements found:", {
-        editBtn: !!editBtn,
-        saveBtn: !!saveBtn,
-        cancelBtn: !!cancelBtn
+    // Profile edit event listeners
+    if (elements.editBtn) {
+      elements.editBtn.addEventListener("click", (e) => {
+        console.log("Edit profile button clicked");
+        e.preventDefault();
+        handleEditProfile();
       });
+      console.log("✓ Edit profile button listener attached");
+    }
+    
+    if (elements.saveBtn) {
+      elements.saveBtn.addEventListener("click", (e) => {
+        console.log("Save profile button clicked");
+        e.preventDefault();
+        handleSaveProfile();
+      });
+      console.log("✓ Save profile button listener attached");
+    }
+    
+    if (elements.cancelBtn) {
+      elements.cancelBtn.addEventListener("click", (e) => {
+        console.log("Cancel edit button clicked");
+        e.preventDefault();
+        handleCancelEdit();
+      });
+      console.log("✓ Cancel edit button listener attached");
+    }
 
-      if (editBtn) {
-        // Remove any existing listeners first
-        editBtn.replaceWith(editBtn.cloneNode(true));
-        const newEditBtn = document.getElementById("edit-profile-btn");
-        
-        newEditBtn.addEventListener("click", (e) => {
-          console.log("Edit profile button clicked - event triggered");
+    // Setup keyboard listeners for input fields
+    const editInputs = [
+      document.getElementById("edit-name"),
+      document.getElementById("edit-password"),
+      document.getElementById("edit-password-confirm"),
+    ].filter(Boolean);
+
+    console.log(`Found ${editInputs.length} edit input fields`);
+
+    editInputs.forEach((input, index) => {
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
           e.preventDefault();
-          e.stopPropagation();
-          handleEditProfile(e);
-        });
-        
-        // Also try mousedown as backup
-        newEditBtn.addEventListener("mousedown", (e) => {
-          console.log("Edit profile button mousedown");
-        });
-
-        console.log("Edit button listener attached successfully");
-      } else {
-        console.error("Edit profile button not found!");
-      }
-
-      if (saveBtn) {
-        saveBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("Save button clicked");
           handleSaveProfile();
-        });
-      }
-
-      if (cancelBtn) {
-        cancelBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("Cancel button clicked");
-          handleCancelEdit();
-        });
-      }
-
-      // Setup keyboard listeners for form inputs
-      const editInputs = [
-        document.getElementById("edit-name"),
-        document.getElementById("edit-password"),
-        document.getElementById("edit-password-confirm"),
-      ].filter(Boolean);
-
-      editInputs.forEach((input) => {
-        input.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            handleSaveProfile();
-          }
-        });
+        }
       });
-    };
+      console.log(`✓ Keyboard listener attached to input ${index + 1}`);
+    });
 
-    // Execute setup with delays to ensure DOM is ready
-    setTimeout(() => {
-      removeExistingListeners();
-      setupPhotoListeners();
-      setupProfileListeners();
-      console.log("Event listeners setup completed");
-    }, 100);
+    console.log("✅ All event listeners setup completed successfully");
   };
 
-  // PERBAIKAN: Improved initialization with better element detection
-  const init = () => {
-    if (typeof document === "undefined") return;
+  // Improved element waiting function
+  const waitForElements = () => {
+    const requiredIds = [
+      "display-name",
+      "display-email",
+      "edit-profile-btn",
+      "profile-photo-preview",
+      "change-photo-btn",
+      "photo-overlay",
+      "upload-photo",
+      "photo-options-modal"
+    ];
+    
+    const foundElements = [];
+    const missingElements = [];
+    
+    requiredIds.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        foundElements.push(id);
+      } else {
+        missingElements.push(id);
+      }
+    });
+    
+    console.log(`Found elements: [${foundElements.join(', ')}]`);
+    if (missingElements.length > 0) {
+      console.log(`Missing elements: [${missingElements.join(', ')}]`);
+    }
+    
+    return missingElements.length === 0;
+  };
 
-    console.log("ProfilPresenter initializing...");
+  // Improved initialization
+  const init = () => {
+    if (typeof document === "undefined") {
+      console.warn("Document not available");
+      return;
+    }
+
+    console.log("Initializing ProfilPresenter...");
 
     const runSetup = () => {
+      if (document.body.dataset.presenterInitialized === "true") {
+        console.log("ProfilPresenter already initialized");
+        return;
+      }
+      
       console.log("Running setup...");
-      setupEventListeners();
-      loadAndDisplayProfile();
-      
-      // Mark as initialized
-      document.body.dataset.profilPresenterInitialized = "true";
-      console.log("ProfilPresenter setup completed");
+      // Small delay to ensure DOM is fully ready
+      setTimeout(() => {
+        setupEventListeners();
+        loadAndDisplayProfile();
+        document.body.dataset.presenterInitialized = "true";
+        console.log("✅ ProfilPresenter initialized successfully");
+      }, 100);
     };
 
-    const waitForElements = () => {
-      const requiredIds = [
-        "display-name",
-        "display-email", 
-        "edit-profile-btn",
-        "profile-photo-preview"
-      ];
+    const startObserver = () => {
+      console.log("Starting MutationObserver...");
+      let observerTimeout;
       
-      const foundElements = {};
-      requiredIds.forEach(id => {
-        foundElements[id] = !!document.getElementById(id);
+      const observer = new MutationObserver((mutations, obs) => {
+        console.log("DOM mutation detected, checking elements...");
+        if (waitForElements()) {
+          console.log("All required elements found, running setup...");
+          runSetup();
+          obs.disconnect();
+          if (observerTimeout) clearTimeout(observerTimeout);
+        }
       });
-      
-      const allExist = Object.values(foundElements).every(Boolean);
-      
-      if (!allExist) {
-        console.log("Still waiting for elements:", foundElements);
-      }
-      
-      return allExist;
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Timeout to prevent infinite observation
+      observerTimeout = setTimeout(() => {
+        console.warn("Observer timeout - some elements may not be available");
+        observer.disconnect();
+        // Try to run setup anyway with available elements
+        runSetup();
+      }, 10000);
     };
 
-    // Check if already initialized
-    if (document.body.dataset.profilPresenterInitialized === "true") {
-      console.log("ProfilPresenter already initialized");
-      return;
-    }
-
-    // Try immediate setup
-    if (waitForElements()) {
-      console.log("All elements found immediately, running setup");
-      runSetup();
-      return;
-    }
-
-    // Wait for elements with MutationObserver
-    console.log("Waiting for DOM elements...");
-    const observer = new MutationObserver((mutations, obs) => {
+    // Check document ready state
+    if (document.readyState === 'loading') {
+      console.log("Document still loading, waiting for DOMContentLoaded...");
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log("DOMContentLoaded event fired");
+        if (waitForElements()) {
+          runSetup();
+        } else {
+          startObserver();
+        }
+      });
+    } else {
+      console.log("Document already ready, checking elements...");
       if (waitForElements()) {
-        console.log("All required elements found, running setup");
         runSetup();
-        obs.disconnect();
+      } else {
+        startObserver();
       }
-    });
+    }
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    // Fallback timeout
-    setTimeout(() => {
-      if (document.body.dataset.profilPresenterInitialized !== "true") {
-        console.log("Timeout reached, forcing setup");
-        observer.disconnect();
-        runSetup();
-      }
-    }, 5000);
-
-    // Clean up on hash change
+    // Handle hash changes
     window.addEventListener("hashchange", () => {
-      delete document.body.dataset.profilPresenterInitialized;
-      console.log("Hash changed, cleared initialization flag");
+      console.log("Hash changed, resetting presenter initialization");
+      delete document.body.dataset.presenterInitialized;
     }, { once: true });
   };
 
-  // Auto-initialize
+  // Initialize immediately
   init();
 
+  // Return public methods
   return {
     init,
     loadAndDisplayProfile,
@@ -781,5 +761,3 @@ export default function ProfilPresenter() {
     updateImageDisplay,
   };
 }
-
-//terbaru
