@@ -167,7 +167,7 @@ const init = async () => {
   // Health check
   server.route({
     method: "GET",
-    path: "/health",
+    path: "/api/health",
     handler: (request, h) => ({
       status: "OK",
       message: "MoodMate Auth API is running",
@@ -178,7 +178,7 @@ const init = async () => {
   // Register
   server.route({
     method: "POST",
-    path: "/auth/register",
+    path: "/api/auth/register",
     handler: async (request, h) => {
       try {
         const { name, email, password } = request.payload;
@@ -211,7 +211,7 @@ const init = async () => {
           .response({ success: true, message: "User berhasil didaftarkan" })
           .code(201);
       } catch (error) {
-        console.error("!!! FATAL ERROR in /auth/register handler:", error);
+        console.error("!!! FATAL ERROR in /api/auth/register handler:", error);
         return h
           .response({
             success: false,
@@ -227,7 +227,7 @@ const init = async () => {
   // Login
   server.route({
     method: "POST",
-    path: "/auth/login",
+    path: "/api/auth/login",
     handler: async (request, h) => {
       try {
         const { email, password } = request.payload;
@@ -285,7 +285,7 @@ const init = async () => {
           })
           .header("x-session-id", sessionId);
       } catch (error) {
-        console.error("!!! FATAL ERROR in /auth/login handler:", error);
+        console.error("!!! FATAL ERROR in /api/auth/login handler:", error);
         return h
           .response({
             success: false,
@@ -299,7 +299,7 @@ const init = async () => {
   // Logout
   server.route({
     method: "POST",
-    path: "/auth/logout",
+    path: "/api/auth/logout",
     handler: async (request, h) => {
       const sessionId = request.headers["x-session-id"];
       if (sessionId) {
@@ -314,7 +314,7 @@ const init = async () => {
 
   server.route({
     method: "GET",
-    path: "/auth/profile",
+    path: "/api/auth/profile",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -351,7 +351,7 @@ const init = async () => {
           },
         };
       } catch (error) {
-        console.error("!!! FATAL ERROR in /auth/profile handler:", error);
+        console.error("!!! FATAL ERROR in /api/auth/profile handler:", error);
         return h
           .response({
             success: false,
@@ -361,10 +361,132 @@ const init = async () => {
       }
     },
   });
+
+    // Tambahkan route ini setelah route GET /api/auth/profile
+  server.route({
+    method: "PUT",
+    path: "/api/auth/profile",
+    handler: async (request, h) => {
+      try {
+        const session = await validateSession(request);
+        if (!session) {
+          return h
+            .response({ success: false, message: "Session tidak valid" })
+            .code(401);
+        }
+
+        const { name, email } = request.payload;
+        
+        // Validasi input
+        if (!name || name.trim().length === 0) {
+          return h
+            .response({ success: false, message: "Nama harus diisi" })
+            .code(400);
+        }
+
+        if (!email || email.trim().length === 0) {
+          return h
+            .response({ success: false, message: "Email harus diisi" })
+            .code(400);
+        }
+
+        // Validasi format email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return h
+            .response({ success: false, message: "Format email tidak valid" })
+            .code(400);
+        }
+
+        const userRef = db.collection("users").doc(session.userId);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+          return h
+            .response({ success: false, message: "User tidak ditemukan" })
+            .code(404);
+        }
+
+        // Jika email diubah, cek apakah email baru sudah digunakan
+        if (email !== session.email) {
+          const existingUserRef = db.collection("users").doc(email);
+          const existingUserDoc = await existingUserRef.get();
+          
+          if (existingUserDoc.exists) {
+            return h
+              .response({ success: false, message: "Email sudah digunakan" })
+              .code(409);
+          }
+        }
+
+        const updatedData = {
+          name: name.trim(),
+          email: email.trim(),
+          updatedAt: getCurrentDate(),
+        };
+
+        // Jika email berubah, kita perlu menangani perubahan document ID
+        if (email !== session.email) {
+          // Ambil data user lama termasuk password dan data lainnya
+          const oldUserData = userDoc.data();
+          
+          // Buat dokumen baru dengan email sebagai ID
+          await db.collection("users").doc(email).set({
+            ...oldUserData,
+            ...updatedData,
+          });
+          
+          // Hapus dokumen lama
+          await userRef.delete();
+          
+          // Update semua sessions yang menggunakan userId lama
+          const sessionsSnapshot = await db.collection(SESSION_COLLECTION)
+            .where("userId", "==", session.userId)
+            .get();
+          
+          const batch = db.batch();
+          sessionsSnapshot.docs.forEach(doc => {
+            batch.update(doc.ref, { 
+              userId: email,
+              email: email 
+            });
+          });
+          await batch.commit();
+          
+        } else {
+          // Jika email tidak berubah, update dokumen yang ada
+          await userRef.update(updatedData);
+        }
+
+        return h.response({
+          success: true,
+          message: "Profil berhasil diperbarui",
+          data: {
+            user: {
+              id: email,
+              name: updatedData.name,
+              email: updatedData.email,
+              updatedAt: updatedData.updatedAt,
+            },
+          },
+        });
+
+      } catch (error) {
+        console.error("!!! ERROR in /api/auth/profile PUT:", error);
+        return h
+          .response({
+            success: false,
+            message: "Terjadi kesalahan internal pada server.",
+          })
+          .code(500);
+      }
+    },
+  });
+
   // TAMBAHKAN ROUTE BARU UNTUK UPDATE FOTO PROFIL
   server.route({
     method: "PUT",
-    path: "/auth/profile-photo",
+    path: "/api/auth/profile-photo",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -395,7 +517,7 @@ const init = async () => {
           })
           .code(200);
       } catch (error) {
-        console.error("!!! ERROR in /auth/profile-photo PUT:", error);
+        console.error("!!! ERROR in /api/auth/profile-photo PUT:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -406,7 +528,7 @@ const init = async () => {
   // TAMBAHKAN ROUTE BARU UNTUK RESET FOTO PROFIL
   server.route({
     method: "DELETE",
-    path: "/auth/profile-photo",
+    path: "/api/auth/profile-photo",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -429,7 +551,7 @@ const init = async () => {
           .response({ success: true, message: "Foto profil berhasil direset" })
           .code(200);
       } catch (error) {
-        console.error("!!! ERROR in /auth/profile-photo DELETE:", error);
+        console.error("!!! ERROR in /api/auth/profile-photo DELETE:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -438,7 +560,7 @@ const init = async () => {
   });
   server.route({
     method: "PUT",
-    path: "/auth/change-password",
+    path: "/api/auth/change-password",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -558,7 +680,7 @@ const init = async () => {
 
   server.route({
     method: "POST",
-    path: "/journal",
+    path: "/api/journal",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -593,7 +715,7 @@ const init = async () => {
           })
           .code(201);
       } catch (error) {
-        console.error("!!! ERROR in /journal POST:", error);
+        console.error("!!! ERROR in /api/journal POST:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -604,7 +726,7 @@ const init = async () => {
   // MENDAPATKAN SEMUA JURNAL PENGGUNA
   server.route({
     method: "GET",
-    path: "/journal",
+    path: "/api/journal",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -631,7 +753,7 @@ const init = async () => {
           total: journals.length,
         });
       } catch (error) {
-        console.error("!!! ERROR in /journal GET:", error);
+        console.error("!!! ERROR in /api/journal GET:", error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -642,7 +764,7 @@ const init = async () => {
   // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({
     method: "GET",
-    path: "/journal/{id}",
+    path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -674,7 +796,7 @@ const init = async () => {
           data: { id: docSnap.id, ...journalData },
         });
       } catch (error) {
-        console.error(`!!! ERROR in /journal/{id} GET:`, error);
+        console.error(`!!! ERROR in /api/journal/{id} GET:`, error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -684,7 +806,7 @@ const init = async () => {
   // MENGHAPUS JURNAL
   server.route({
     method: "DELETE",
-    path: "/journal/{id}",
+    path: "/api/journal/{id}",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
@@ -717,7 +839,7 @@ const init = async () => {
           message: "Jurnal berhasil dihapus",
         });
       } catch (error) {
-        console.error(`!!! ERROR in /journal/{id} DELETE:`, error);
+        console.error(`!!! ERROR in /api/journal/{id} DELETE:`, error);
         return h
           .response({ success: false, message: "Terjadi kesalahan internal" })
           .code(500);
@@ -728,7 +850,7 @@ const init = async () => {
   // Predict Mood
   server.route({
     method: "POST",
-    path: "/predict-mood",
+    path: "/api/predict-mood",
     handler: async (request, h) => {
       try {
         const session = await validateSession(request);
