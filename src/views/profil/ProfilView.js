@@ -182,6 +182,15 @@ export default async function ProfilView() {
                   </div>
                   
                   <div>
+                    <label for="edit-current-password" class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Password Saat Ini</label>
+                    <input type="password" 
+                           id="edit-current-password" 
+                           placeholder="Masukkan password saat ini"
+                           class="w-full mt-1 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white transition-all duration-200" />
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Diperlukan untuk mengubah password</p>
+                  </div>
+                  
+                  <div>
                     <label for="edit-password" class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Password Baru</label>
                     <input type="password" 
                            id="edit-password" 
@@ -273,5 +282,3 @@ export default async function ProfilView() {
 
   return htmlContent;
 }
-
-// perubahan
