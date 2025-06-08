@@ -253,7 +253,7 @@ export default async function ProfilView() {
                       <p class="text-lg text-green-600 dark:text-green-400 font-semibold">Aktif</p>
                     </div>
                   </div>
-                  
+              
                 </div>
               </div>
             </div>

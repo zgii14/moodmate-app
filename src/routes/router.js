@@ -190,5 +190,17 @@ const preloadPage = async (path) => {
   }
 };
 
+const handleSkipToContent = () => {
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) {
+    mainContent.setAttribute('tabindex', '-1');
+    mainContent.focus();
+    window.scrollTo({
+      top: mainContent.offsetTop - 20,
+      behavior: 'smooth',
+    });
+  }
+};
+
+export { navigateTo, preloadPage, handleSkipToContent };
 export default router;
-export { navigateTo, preloadPage };
