@@ -35,37 +35,60 @@ export const UserModel = {
         return null;
       }
 
-      const response = await ApiService.getProfile();
+      const response = await ApiService.getUserProfile();
 
       if (response.error) {
         console.error("Error getting user profile:", response.message);
+
         if (response.status === 401) {
           this.logout();
         }
+
         return null;
       }
 
-      // Normalize user data from different response formats
-      let userData = response.data?.user || response.user || response.data || response;
-      
+      let userData = null;
+      if (response.data && response.data.user) {
+        userData = response.data.user;
+      } else if (response.user) {
+        userData = response.user;
+      } else if (response.data) {
+        userData = response.data;
+      } else {
+        userData = response;
+      }
+
       if (!userData || typeof userData !== "object" || !userData.email) {
         console.error("Invalid user data received from API:", userData);
         return null;
       }
 
-      // Save to localStorage
+      if (!userData.joined && !userData.createdAt && !userData.created_at) {
+        const existingUser = this.getCurrent();
+        if (existingUser && existingUser.joined) {
+          userData.joined = existingUser.joined;
+        } else {
+          userData.joined = new Date().toISOString();
+        }
+      }
+
       try {
         localStorage.setItem("moodmate-user", JSON.stringify(userData));
       } catch (storageError) {
-        console.error("Failed to save user data to localStorage:", storageError);
+        console.error(
+          "Failed to save user data to localStorage:",
+          storageError
+        );
       }
 
       return userData;
     } catch (error) {
       console.error("Error fetching user profile:", error);
+
       if (error.message && error.message.includes("401")) {
         this.logout();
       }
+
       return null;
     }
   },
