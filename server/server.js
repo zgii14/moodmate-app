@@ -139,7 +139,6 @@ const init = async () => {
           "Accept",
           "Content-Type",
           "If-None-Match",
-          "X-Session-ID",
           "x-session-id",
         ],
         exposedHeaders: ["WWW-Authenticate", "Server-Authorization"],
@@ -271,7 +270,7 @@ const init = async () => {
               },
             },
           })
-          .header("X-Session-ID", sessionId);
+          .header("x-session-id", sessionId);
       } catch (error) {
         console.error("!!! FATAL ERROR in /api/auth/login handler:", error);
         return h
