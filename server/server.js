@@ -128,21 +128,6 @@ const validateSession = async (request) => {
 const init = async () => {
   await loadData();
 
-  server.route({
-    method: 'OPTIONS',
-    path: '/{any*}', // Tangkap semua path untuk method OPTIONS
-    handler: (request, h) => {
-      const response = h.response('OK');
-  
-      // Berikan semua izin yang diperlukan secara eksplisit
-      response.header('Access-Control-Allow-Origin', 'https://moodmate.up.railway.app');
-      response.header('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID, Authorization');
-      response.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      
-      return response;
-    }
-  });
-  
   const server = Hapi.server({
     port: process.env.PORT || 9000,
     host: "0.0.0.0",
@@ -164,7 +149,20 @@ const init = async () => {
     },
   });
 
-  // Health check
+  server.route({
+    method: 'OPTIONS',
+    path: '/{any*}', // Tangkap semua path untuk method OPTIONS
+    handler: (request, h) => {
+      const response = h.response('OK');
+  
+      // Berikan semua izin yang diperlukan secara eksplisit
+      response.header('Access-Control-Allow-Origin', 'https://moodmate.up.railway.app');
+      response.header('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID, Authorization');
+      response.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      
+      return response;
+    }
+  });
 
   // Health check
   server.route({
