@@ -157,21 +157,6 @@ export default async function JournalResultView() {
           <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent 
                       translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
         </button>
-      
-        <!-- Share Button -->
-        <button id="shareBtn" 
-          class="group relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 
-            hover:from-blue-600 hover:via-indigo-600 hover:to-purple-700 
-            text-white font-bold py-5 px-8 rounded-2xl shadow-xl 
-            transform transition-all duration-500 hover:scale-110 hover:shadow-2xl
-            border-2 border-white/20 backdrop-blur-sm
-            flex items-center gap-4 min-w-[220px] justify-center
-            before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent 
-            before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
-          <span class="relative z-10 text-2xl group-hover:animate-pulse transition-all duration-300 group-hover:scale-125">📤</span>
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent 
-                      translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-        </button>
         
         <!-- Back to Journal Button -->
         <button id="backToJournalBtn" 
