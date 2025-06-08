@@ -1,6 +1,7 @@
+import { UserModel } from "../models/UserModel.js"; 
+import ApiService from "../services/apiService.js"; // TAMBAHKAN INI
 
-import { UserModel } from "../models/UserModel.js"; // Mungkin path ini salah
-console.log("UserModel di dalam Navbar:", UserModel); // <-- TAMBAHKAN INI
+console.log("UserModel di dalam Navbar:", UserModel);
 export const renderNavbar = () => {
   const app = document.getElementById("app");
   let nav = app.querySelector("nav");
@@ -24,17 +25,21 @@ export const renderNavbar = () => {
   const DEFAULT_PHOTO =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiByeD0iNzUiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTc1IDY1QzgyLjE3OTcgNjUgODggNTkuMTc5NyA4OCA1MkM4OCA0NC44MjAzIDgyLjE3OTcgMzkgNzUgMzlDNjcuODIwMyAzOSA2MiA0NC44MjAzIDYyIDUyQzYyIDU5LjE3OTcgNjcuODIwMyA2NSA3NSA2NVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTEwNSA5NUM5Ny44NzA3IDg5LjU2NDggODcuNzEwNSA4NiA3NSA4NkM2Mi4yODk1IDg2IDUyLjEyOTMgODkuNTY0OCA0NSA5NUw0NSAxMTBDNDUgMTE1LjUyMyA0OS40NzcgMTIwIDU1IDEyMEw5NSAxMjBDMTAwLjUyMyAxMjAgMTA1IDExNS41MjMgMTA1IDExMEwxMDUgOTVaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
 
+  // PERBAIKAN: Hapus Firestore dan gunakan UserModel atau API
   const getCurrentUserProfilePhoto = async () => {
     try {
-      const userEmail = localStorage.getItem("moodmate-current-user");
-      if (!userEmail) return DEFAULT_PHOTO;
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        return userSnap.data().profilePhoto || DEFAULT_PHOTO;
+      // Ambil dari UserModel terlebih dahulu (dari localStorage)
+      const photoFromStorage = UserModel.getProfilePhoto();
+      if (photoFromStorage) {
+        return photoFromStorage;
       }
+
+      // Jika tidak ada di storage, ambil dari backend
+      const userData = await UserModel.getProfile();
+      if (userData && userData.profilePhoto) {
+        return userData.profilePhoto;
+      }
+
       return DEFAULT_PHOTO;
     } catch (error) {
       console.error("Error loading profile photo:", error);
@@ -123,6 +128,7 @@ export const renderNavbar = () => {
     }
   };
 
+  // ... rest of the mobile menu code stays the same ...
   const createMobileMenu = () => {
     const existingMenu = document.getElementById("mobileMenu");
     const existingOverlay = document.getElementById("mobileOverlay");
@@ -259,7 +265,7 @@ export const renderNavbar = () => {
       logoutBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         try {
-          // --- PERBAIKAN #2: Panggil method logout dari ApiService ---
+          // PERBAIKAN: Panggil method logout dari ApiService
           await ApiService.logout();
         } catch (error) {
           console.error("Logout error:", error);
@@ -271,9 +277,8 @@ export const renderNavbar = () => {
         localStorage.removeItem("moodmate-user");
         localStorage.removeItem("profile_photo");
 
-        toggleMobileMenu(false); // Pastikan menu mobile tertutup
+        toggleMobileMenu(false);
         window.location.hash = "/login";
-        // Tidak perlu renderNavbar lagi di sini karena hashchange akan memicunya
       });
     }
   };
