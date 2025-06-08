@@ -383,7 +383,7 @@ export default function ProfilPresenter() {
       saveBtn.classList.remove("opacity-70", "cursor-not-allowed");
     }
   };
-// anjay perubahan
+
   const loadAndDisplayProfile = async () => {
     try {
       const userData = await UserModel.getProfile();
@@ -428,6 +428,7 @@ export default function ProfilPresenter() {
       const newName = document.getElementById("edit-name").value.trim();
       const newPassword = document.getElementById("edit-password").value;
       const confirmPassword = document.getElementById("edit-password-confirm").value;
+      const currentPassword = document.getElementById("edit-current-password").value; // Input password saat ini
   
       if (!newName) {
         throw new Error("Nama tidak boleh kosong.");
@@ -436,10 +437,9 @@ export default function ProfilPresenter() {
       // Hanya update nama jika berubah
       if (newName !== currentUser.name) {
         console.log("Updating name...");
-        // LANGKAH 2: Sertakan email saat mengirim data nama baru
         const profileResult = await ApiService.updateProfile({
           name: newName,
-          email: currentUser.email, // <-- INI BAGIAN PENTING YANG MEMPERBAIKI MASALAH
+          email: currentUser.email,
         });
   
         if (!profileResult.success) {
@@ -447,13 +447,25 @@ export default function ProfilPresenter() {
         }
       }  
   
+      // Jika ingin mengubah password
       if (newPassword) {
         const passwordError = validatePassword(newPassword, confirmPassword);
         if (passwordError) throw new Error(passwordError);
+
+        // Validasi password saat ini diperlukan
+        if (!currentPassword) {
+          throw new Error("Password saat ini harus diisi untuk mengubah password.");
+        }
   
-        const passwordResult = await ApiService.changePassword({ newPassword });
-        if (!passwordResult.success)
+        // Kirim currentPassword ke API
+        const passwordResult = await ApiService.changePassword({ 
+          currentPassword: currentPassword,  // Field ini yang diperlukan
+          newPassword: newPassword
+        });
+        
+        if (!passwordResult.success) {
           throw new Error(passwordResult.message || "Gagal mengubah password.");
+        }
       }
   
       showToast("Profil berhasil diperbarui!", "success");
@@ -473,9 +485,11 @@ export default function ProfilPresenter() {
   const clearEditForm = () => {
     const editPasswordInput = document.getElementById("edit-password");
     const editPasswordConfirmInput = document.getElementById("edit-password-confirm");
+    const editCurrentPasswordInput = document.getElementById("edit-current-password");
 
     if (editPasswordInput) editPasswordInput.value = "";
     if (editPasswordConfirmInput) editPasswordConfirmInput.value = "";
+    if (editCurrentPasswordInput) editCurrentPasswordInput.value = "";
   };
 
   const handleCancelEdit = () => {
@@ -606,6 +620,7 @@ export default function ProfilPresenter() {
       document.getElementById("edit-name"),
       document.getElementById("edit-password"),
       document.getElementById("edit-password-confirm"),
+      document.getElementById("edit-current-password"),
     ].filter(Boolean);
 
     editInputs.forEach((input) => {
@@ -670,5 +685,3 @@ export default function ProfilPresenter() {
     updateImageDisplay,
   };
 }
-
-// perubahan
