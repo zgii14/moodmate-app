@@ -254,10 +254,6 @@ export default async function ProfilView() {
                     </div>
                   </div>
                   
-                  <div>
-                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Terakhir Diubah</label>
-                    <p id="last-updated" class="text-lg text-gray-700 dark:text-gray-200 mt-1">-</p>
-                  </div>
                 </div>
               </div>
             </div>
