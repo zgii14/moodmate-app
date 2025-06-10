@@ -1,48 +1,62 @@
-// utilserver/firebaseAdmin.js
+const admin = require("firebase-admin");
+const dotenv = require("dotenv");
 
-const admin = require('firebase-admin');
-const path = require('path');
+// Load environment variables
+dotenv.config();
 
-// Variabel untuk menampung instance Firestore
 let db;
 
 try {
-  // Cek apakah variabel GOOGLE_CREDENTIALS_JSON ada (untuk produksi di Railway)
+  // Cek apakah variabel GOOGLE_CREDENTIALS_JSON ada (untuk produksi)
   if (process.env.GOOGLE_CREDENTIALS_JSON) {
-    console.log("Initializing Firebase Admin with credentials from environment variable...");
-    
-    // Ambil string JSON dari environment variable
+    console.log("Initializing Firebase Admin with GOOGLE_CREDENTIALS_JSON...");
+
     const serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
 
-    // Inisialisasi Firebase jika belum ada
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-      console.log("✅ Firebase Admin SDK for Production initialized successfully.");
+      console.log(
+        "✅ Firebase Admin SDK initialized successfully with env JSON."
+      );
     }
-  } else {
-    // Fallback untuk development lokal (membaca dari file)
-    console.log("GOOGLE_CREDENTIALS_JSON not found. Initializing Firebase Admin with local file...");
-    const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
-    const serviceAccount = require(serviceAccountPath); // Lebih mudah pakai require
+  } else if (process.env.FIREBASE_PRIVATE_KEY) {
+    // Menggunakan environment variables terpisah
+    console.log("Initializing Firebase Admin with separate env variables...");
+
+    const serviceAccount = {
+      type: process.env.FIREBASE_TYPE,
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: process.env.FIREBASE_AUTH_URI,
+      token_uri: process.env.FIREBASE_TOKEN_URI,
+      auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL,
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+      universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
+    };
 
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-      console.log("✅ Firebase Admin SDK for Local Dev initialized successfully.");
+      console.log(
+        "✅ Firebase Admin SDK initialized successfully with separate env vars."
+      );
     }
+  } else {
+    throw new Error("No Firebase credentials found in environment variables");
   }
 
   // Setelah inisialisasi, ambil instance Firestore
   db = admin.firestore();
-
+  console.log("✅ Firestore instance created successfully");
 } catch (error) {
-    console.error("❌ FATAL: Failed to initialize Firebase Admin SDK:", error);
-    // Hentikan proses jika Firebase gagal diinisialisasi, karena aplikasi tidak bisa berjalan.
-    process.exit(1); 
+  console.error("❌ FATAL: Failed to initialize Firebase Admin SDK:", error);
+  process.exit(1);
 }
 
-// Ekspor hanya 'db' agar bisa digunakan di file lain
 module.exports = { db };

@@ -12,6 +12,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.0",
+    "dotenv": "^16.5.0",
     "feather-icons": "^4.29.2",
     "firebase": "^11.8.1",
     "workbox-cacheable-response": "^7.3.0",
