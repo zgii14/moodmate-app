@@ -34,6 +34,68 @@ __pycache__/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
+
+# ===== SECURITY & CREDENTIALS =====
+# Firebase & Google Cloud Service Account Keys
+serviceAccountKey.json
+**/serviceAccountKey.json
+server/utilserver/serviceAccountKey.json
+firebase-adminsdk-*.json
+**/firebase-adminsdk-*.json
+
+# Google Cloud Credentials
+google-credentials.json
+**/google-credentials.json
+gcloud-service-key.json
+**/gcloud-service-key.json
+
+# AWS Credentials
+.aws/
+aws-credentials.json
+**/aws-credentials.json
+
+# API Keys & Secrets
+.secrets
+.secrets.json
+**/secrets.json
+api-keys.json
+**/api-keys.json
+config/secrets.js
+config/keys.js
+
+# Database Connection Strings
+database.json
+**/database.json
+db-config.json
+**/db-config.json
+
+# SSL/TLS Certificates & Keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+*.ssh/
+
+# OAuth & JWT Secrets
+oauth.json
+jwt-secret.js
+**/oauth.json
+**/jwt-secret.js
 
 # Logs
 logs
@@ -62,6 +124,7 @@ build/
 out/
 .next/
 .nuxt/
+public/build/
 
 # OS generated files
 .DS_Store
@@ -74,27 +137,37 @@ Thumbs.db
 *.tmp
 *.swp
 *.swo
+*~
 
 # IDE and Editor files
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
-*~
+.history/
+.vscode/settings.json
 
 # Temporary folders
 tmp/
 temp/
+.temp/
+.tmp/
 
 # Cache
 .cache/
 .parcel-cache/
 .eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -140,3 +213,30 @@ celerybeat.pid
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Mobile Development
+*.apk
+*.aab
+*.ipa
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Package files
+*.tar.gz
+*.zip
+*.rar
+*.7z
