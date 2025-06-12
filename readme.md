@@ -1,4 +1,4 @@
-# [CC25-CF160] - MoodMate
+# MoodMate Project
 
 MoodMate adalah aplikasi untuk prediksi mood berbasis teks menggunakan teknologi Machine Learning. Proyek ini terdiri dari tiga komponen utama: Frontend (Vanilla.js), Backend API (Node.js dengan Hapi.js), dan ML API (Python dengan FastAPI).
 
