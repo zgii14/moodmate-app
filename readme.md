@@ -37,5 +37,3 @@ Pastikan Anda telah menginstal:
    - Get Journal by ID: GET /api/journal/{id}
    - Update Journal: PUT /api/journal/{id}
    - Delete Journal: DELETE /api/journal/{id}
-```
-
