@@ -4,8 +4,6 @@ const CONFIG = {
   CACHE_NAME: "MoodMate-V1",
   DATABASE_NAME: "moodmate-database",
   DATABASE_VERSION: 1,
-  // WEB_SOCKET_SERVER: "ws://localhost:9000",
 };
 
-// Export the configuration object
 export default CONFIG;

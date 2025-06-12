@@ -11,7 +11,6 @@ export const UserModel = {
     }
   },
 
-  // Menyimpan data user dan sesi ke localStorage
   setSession(sessionId, user) {
     localStorage.setItem("moodmate-session-id", sessionId);
     localStorage.setItem("moodmate-user", JSON.stringify(user));
@@ -19,7 +18,6 @@ export const UserModel = {
     localStorage.setItem("moodmate-current-user", user.email);
   },
 
-  // Membersihkan semua data sesi dari localStorage
   clearSession() {
     localStorage.removeItem("moodmate-session-id");
     localStorage.removeItem("moodmate-user");
@@ -47,7 +45,6 @@ export const UserModel = {
         return null;
       }
   
-      // PERBAIKAN: Akses data.user, bukan langsung data
       let userData = response.data?.user || response.data;
     
       if (!userData || typeof userData !== "object" || !userData.email) {
@@ -55,7 +52,6 @@ export const UserModel = {
         return null;
       }
   
-      // Set joined date jika belum ada
       if (!userData.joined && !userData.createdAt && !userData.created_at) {
         const existingUser = this.getCurrent();
         if (existingUser && existingUser.joined) {
@@ -65,7 +61,6 @@ export const UserModel = {
         }
       }
   
-      // Simpan ke localStorage
       try {
         localStorage.setItem("moodmate-user", JSON.stringify(userData));
       } catch (storageError) {
@@ -84,10 +79,8 @@ export const UserModel = {
     }
   },
 
-  // Fungsi logout yang lengkap
   async logout() {
     try {
-      // Panggil endpoint backend untuk menghapus sesi di server
       await ApiService.logout();
     } catch (error) {
       console.error(
@@ -95,7 +88,6 @@ export const UserModel = {
         error
       );
     } finally {
-      // Selalu bersihkan sesi di client dan redirect
       this.clearSession();
       window.location.hash = "/login";
     }
@@ -245,13 +237,11 @@ export const UserModel = {
     }
   },
 
-  // Mengambil profil dari backend dan memperbarui localStorage
   async refreshProfile() {
     if (!this.isLoggedIn()) return null;
   
     const result = await ApiService.getProfile();
     if (result && result.success) {
-      // PERBAIKAN: Akses data.user, bukan data.user langsung
       const user = result.data?.user || result.data;
       
       if (user && typeof user === "object" && user.email) {
@@ -331,7 +321,6 @@ export const UserModel = {
       console.log("Force logout completed");
     } catch (error) {
       console.error("Error during force logout:", error);
-      // Tetap redirect
       location.hash = "/login";
     }
   },

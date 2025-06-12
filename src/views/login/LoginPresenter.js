@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import { db, serverTimestamp } from "../../utils/firebase.js";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
-// Fungsi generateCaptcha dan showNotification tidak berubah
 function generateCaptcha() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
   let result = "";
@@ -55,7 +54,6 @@ function showNotification(message, type = "info") {
   notification.addEventListener("click", hideNotification);
 }
 
-// Fungsi toggle password tidak berubah
 export function initPasswordToggle() {
   const togglePassword = document.getElementById("toggle-password-login");
   const passwordInput = document.getElementById("login-password");
@@ -145,8 +143,6 @@ export function initForgotPasswordModal() {
   }
 }
 
-// Fungsi utama untuk halaman Login
-// Fungsi utama untuk halaman Login (Dengan Perbaikan)
 export default function LoginPresenter() {
   setTimeout(() => {
     const loginForm = document.getElementById("form-login");
@@ -168,15 +164,11 @@ export default function LoginPresenter() {
         submitButton.textContent = "Memproses...";
 
         try {
-          // --- PERBAIKAN UTAMA: Langsung panggil ApiService untuk login ---
-          // Tidak ada lagi pengecekan server atau interaksi langsung dengan Firebase.
           const result = await ApiService.login({ email, password });
 
           if (result.success) {
-            // Jika login sukses dari backend, simpan data ke localStorage
             ApiService.setSessionData(result.data.sessionId, result.data.user);
 
-            // Tampilkan notifikasi dan lanjutkan alur aplikasi
             window.dispatchEvent(
               new CustomEvent("userLoggedIn", { detail: result.data.user })
             );
@@ -187,11 +179,9 @@ export default function LoginPresenter() {
               window.location.hash = "/dashboard";
             }, 1500);
           } else {
-            // Jika backend mengembalikan pesan error (misal: password salah)
             throw new Error(result.message || "Login gagal!");
           }
         } catch (error) {
-          // Menangani semua jenis error, termasuk error koneksi atau error dari backend
           console.error("Login Error:", error);
           showNotification(`❌ ${error.message}`, "error");
         } finally {
@@ -201,11 +191,8 @@ export default function LoginPresenter() {
       });
     }
 
-    // Logika untuk form reset password bisa tetap menggunakan Firebase langsung
-    // atau bisa juga direfaktor ke backend di kemudian hari.
     const resetForm = document.getElementById("reset-password-form");
 
-    // Logika untuk form reset password tidak berubah
     if (resetForm) {
       const captchaElement = document.getElementById("captcha-text");
       if (
@@ -298,7 +285,6 @@ export default function LoginPresenter() {
   }, 100);
 }
 
-// Fungsi penanganan error login tidak berubah
 function handleLoginError(error) {
   console.error("Login Error:", error);
 

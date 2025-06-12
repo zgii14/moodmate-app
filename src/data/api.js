@@ -25,7 +25,7 @@ class ApiService {
     };
 
     const sessionId = this.getSessionId();
-    console.log("Session ID yang dikirim ke backend:", sessionId); // <-- Tambahkan baris ini
+    console.log("Session ID yang dikirim ke backend:", sessionId); 
 
     if (sessionId) {
       headers["x-session-id"] = sessionId;
@@ -38,7 +38,7 @@ class ApiService {
       ...this.getBasicHeaders(),
       ...options.headers,
     };
-    console.log("Headers yang dikirim ke backend:", headers); // <-- Tambahkan log ini
+    console.log("Headers yang dikirim ke backend:", headers); 
 
     const response = await fetch(url, {
       ...options,

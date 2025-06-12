@@ -82,7 +82,6 @@ export default function RegisterPresenter() {
         const confirmPassword = document.getElementById("reg-confirm").value;
         const submitButton = form.querySelector('button[type="submit"]');
 
-        // Validasi input di sisi client (sudah benar)
         if (
           !name ||
           !email ||
@@ -100,23 +99,18 @@ export default function RegisterPresenter() {
         submitButton.textContent = "Mendaftar...";
 
         try {
-          // --- PERBAIKAN UTAMA: Panggil ApiService untuk registrasi ---
-          // Tidak ada lagi interaksi langsung dengan Firebase di sini.
           const result = await ApiService.register({ name, email, password });
 
           if (result.success) {
-            // Jika backend merespon dengan sukses
             showNotification("Registrasi berhasil! Silakan login.", "success");
             form.reset();
             setTimeout(() => {
               window.location.hash = "/login";
             }, 1500);
           } else {
-            // Jika backend mengembalikan pesan error (misal: email sudah ada)
             throw new Error(result.message || "Registrasi gagal!");
           }
         } catch (error) {
-          // Menangani semua jenis error, termasuk error koneksi atau dari backend
           console.error("Registration Error:", error);
           showNotification(`❌ ${error.message}`, "error");
         } finally {
@@ -127,7 +121,3 @@ export default function RegisterPresenter() {
     }
   }, 100);
 }
-
-// --- FUNGSI INI TELAH DIHAPUS KARENA TIDAK DIPERLUKAN LAGI ---
-// async function checkServerAvailability() { ... }
-// -----------------------------------------------------------

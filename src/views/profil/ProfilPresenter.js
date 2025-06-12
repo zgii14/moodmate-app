@@ -6,7 +6,6 @@ export default function ProfilPresenter() {
   const FILE_SIZE_LIMIT = 5 * 1024 * 1024;
   const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
 
-  // Flag untuk mencegah multiple initialization
   let isInitialized = false;
   let eventListenersAttached = false;
 
@@ -391,7 +390,6 @@ export default function ProfilPresenter() {
         throw new Error("Sesi tidak valid atau gagal memuat profil.");
       }
       
-      // Wait for elements to be available
       await waitForElements(['display-name', 'display-email']);
       
       const displayNameEl = document.getElementById("display-name");
@@ -419,7 +417,6 @@ export default function ProfilPresenter() {
   const handleSaveProfile = async () => {
     setSaveButtonLoading(true);
     try {
-      // LANGKAH 1: Ambil data pengguna yang sedang login dari UserModel
       const currentUser = UserModel.getCurrent();
       if (!currentUser || !currentUser.email) {
         throw new Error("Gagal mendapatkan data pengguna. Silakan login ulang.");
@@ -428,13 +425,12 @@ export default function ProfilPresenter() {
       const newName = document.getElementById("edit-name").value.trim();
       const newPassword = document.getElementById("edit-password").value;
       const confirmPassword = document.getElementById("edit-password-confirm").value;
-      const currentPassword = document.getElementById("edit-current-password").value; // Input password saat ini
+      const currentPassword = document.getElementById("edit-current-password").value; 
   
       if (!newName) {
         throw new Error("Nama tidak boleh kosong.");
       }
   
-      // Hanya update nama jika berubah
       if (newName !== currentUser.name) {
         console.log("Updating name...");
         const profileResult = await ApiService.updateProfile({
@@ -447,19 +443,16 @@ export default function ProfilPresenter() {
         }
       }  
   
-      // Jika ingin mengubah password
       if (newPassword) {
         const passwordError = validatePassword(newPassword, confirmPassword);
         if (passwordError) throw new Error(passwordError);
 
-        // Validasi password saat ini diperlukan
         if (!currentPassword) {
           throw new Error("Password saat ini harus diisi untuk mengubah password.");
         }
   
-        // Kirim currentPassword ke API
         const passwordResult = await ApiService.changePassword({ 
-          currentPassword: currentPassword,  // Field ini yang diperlukan
+          currentPassword: currentPassword,  
           newPassword: newPassword
         });
         
@@ -497,7 +490,6 @@ export default function ProfilPresenter() {
     toggleEditMode(false);
   };
 
-  // Helper function to wait for elements
   const waitForElements = (elementIds, timeout = 5000) => {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
@@ -518,7 +510,6 @@ export default function ProfilPresenter() {
     });
   };
 
-  // Improved setup event listeners with debouncing
   const setupEventListeners = () => {
     if (eventListenersAttached) {
       console.log("Event listeners already attached, skipping...");
@@ -537,7 +528,6 @@ export default function ProfilPresenter() {
       };
     };
 
-    // Photo-related listeners
     const changePhotoBtn = document.getElementById("change-photo-btn");
     const photoOverlay = document.getElementById("photo-overlay");
     const uploadPhotoBtn = document.getElementById("upload-photo-btn");
@@ -598,7 +588,6 @@ export default function ProfilPresenter() {
       });
     }
 
-    // Profile edit listeners
     const editBtn = document.getElementById("edit-profile-btn");
     const saveBtn = document.getElementById("save-profile-btn");
     const cancelBtn = document.getElementById("cancel-edit-btn");
@@ -615,7 +604,6 @@ export default function ProfilPresenter() {
       cancelBtn.addEventListener("click", debounce(handleCancelEdit, 300));
     }
 
-    // Keyboard listeners for form inputs
     const editInputs = [
       document.getElementById("edit-name"),
       document.getElementById("edit-password"),
@@ -636,14 +624,12 @@ export default function ProfilPresenter() {
     console.log("Event listeners setup completed successfully");
   };
 
-  // Improved initialization
   const init = async () => {
     if (typeof document === "undefined" || isInitialized) return;
 
     console.log("ProfilPresenter initializing...");
 
     try {
-      // Wait for critical elements first
       await waitForElements([
         "display-name",
         "display-email", 
@@ -658,7 +644,6 @@ export default function ProfilPresenter() {
       console.log("ProfilPresenter initialized successfully");
     } catch (error) {
       console.error("Error initializing ProfilPresenter:", error);
-      // Try to setup anyway with a delay
       setTimeout(async () => {
         setupEventListeners();
         await loadAndDisplayProfile();
@@ -667,11 +652,9 @@ export default function ProfilPresenter() {
     }
   };
 
-  // Auto-initialize with proper timing
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    // DOM is already loaded
     setTimeout(init, 100);
   }
 
@@ -685,4 +668,3 @@ export default function ProfilPresenter() {
     updateImageDisplay,
   };
 }
-//test

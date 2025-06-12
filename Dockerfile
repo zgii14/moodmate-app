@@ -17,8 +17,6 @@ COPY webpack.\*.js ./
 COPY tailwind.config.js .
 COPY postcss.config.js .
 
-# \--- PERBAIKAN DI SINI ---
-
 # Salin index.html dan seluruh folder public ke dalam image
 
 COPY index.html .

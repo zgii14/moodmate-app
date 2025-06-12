@@ -1,5 +1,5 @@
 import { UserModel } from "../models/UserModel.js"; 
-import ApiService from "../services/apiService.js"; // TAMBAHKAN INI
+import ApiService from "../services/apiService.js"; 
 
 console.log("UserModel di dalam Navbar:", UserModel);
 export const renderNavbar = () => {
@@ -25,16 +25,13 @@ export const renderNavbar = () => {
   const DEFAULT_PHOTO =
     "/images/profile.png";
 
-  // PERBAIKAN: Hapus Firestore dan gunakan UserModel atau API
   const getCurrentUserProfilePhoto = async () => {
     try {
-      // Ambil dari UserModel terlebih dahulu (dari localStorage)
       const photoFromStorage = UserModel.getProfilePhoto();
       if (photoFromStorage) {
         return photoFromStorage;
       }
 
-      // Jika tidak ada di storage, ambil dari backend
       const userData = await UserModel.getProfile();
       if (userData && userData.profilePhoto) {
         return userData.profilePhoto;
@@ -128,7 +125,6 @@ export const renderNavbar = () => {
     }
   };
 
-  // ... rest of the mobile menu code stays the same ...
   const createMobileMenu = () => {
     const existingMenu = document.getElementById("mobileMenu");
     const existingOverlay = document.getElementById("mobileOverlay");
@@ -265,12 +261,10 @@ export const renderNavbar = () => {
       logoutBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         try {
-          // PERBAIKAN: Panggil method logout dari ApiService
           await ApiService.logout();
         } catch (error) {
           console.error("Logout error:", error);
         }
-        // Bersihkan localStorage
         localStorage.removeItem("moodmate-session-id");
         localStorage.removeItem("moodmate-logged-in");
         localStorage.removeItem("moodmate-current-user");

@@ -6,7 +6,6 @@ export default async function ProfilView() {
   try {
     user = UserModel.getCurrent();
     if (!user) {
-      // Try to get fresh profile data
       user = await UserModel.getProfile();
     }
   } catch (error) {
@@ -278,6 +277,3 @@ export default async function ProfilView() {
 
   return htmlContent;
 }
-
-
-//perubahan

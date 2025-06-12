@@ -214,7 +214,7 @@ export default function RiwayatPresenter() {
       id,
       ...data,
       tanggal: processedDate,
-      waktu: processedTime, // Tambahkan waktu
+      waktu: processedTime, 
       dateObj: dateObj,
       mood: data.mood || "neutral",
       catatan: data.catatan || data.text || "",

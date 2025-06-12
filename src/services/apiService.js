@@ -1,5 +1,4 @@
 import CONFIG from "../config";
-// asynchronous function to call the backend API for mood prediction
 const ApiService = {
   async makeRequest(endpoint, options = {}) {
     const sessionId = localStorage.getItem("moodmate-session-id");
@@ -17,15 +16,13 @@ const ApiService = {
       const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, {
         ...options,
         headers,
-        credentials: "include", // Tambahkan ini untuk CORS
+        credentials: "include", 
       });
 
       console.log(`Response status: ${response.status}`);
 
       if (!response.ok) {
-        // Handle specific HTTP errors
         if (response.status === 401) {
-          // Session expired, redirect to login
           localStorage.removeItem("moodmate-session-id");
           localStorage.removeItem("moodmate-current-user");
           localStorage.removeItem("moodmate-logged-in");
@@ -36,7 +33,6 @@ const ApiService = {
           };
         }
 
-        // Try to get error message from response
         try {
           const errorData = await response.json();
           return {
@@ -55,7 +51,6 @@ const ApiService = {
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
 
-      // Handle different types of errors
       if (
         error.name === "TypeError" &&
         error.message.includes("Failed to fetch")
@@ -78,14 +73,12 @@ const ApiService = {
     }
   },
 
-  // Fungsi untuk menyimpan data sesi setelah login berhasil
   setSessionData(sessionId, user) {
     localStorage.setItem("moodmate-session-id", sessionId);
     localStorage.setItem("moodmate-current-user", JSON.stringify(user));
     localStorage.setItem("moodmate-logged-in", "true");
   },
 
-  // Endpoint untuk Login
   async login({ email, password }) {
     return this.makeRequest("/auth/login", {
       method: "POST",
@@ -93,7 +86,6 @@ const ApiService = {
     });
   },
 
-  // Endpoint untuk Register
   async register({ name, email, password }) {
     return this.makeRequest("/auth/register", {
       method: "POST",
@@ -101,21 +93,20 @@ const ApiService = {
     });
   },
 
-  // Endpoint untuk Logout
   async logout() {
     return this.makeRequest("/auth/logout", { method: "POST" });
   },
 
   async predictMood(text) {
     try {
-      const sessionId = localStorage.getItem("moodmate-session-id"); // Ambil sessionId
+      const sessionId = localStorage.getItem("moodmate-session-id"); 
       console.log("Session ID yang dikirim ke backend:", sessionId);
 
       const response = await fetch(`${CONFIG.BASE_URL}/predict-mood`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-session-id": sessionId, // Tambahkan header ini
+          "x-session-id": sessionId, 
         },
         credentials: "include",
         body: JSON.stringify({ text }),
@@ -166,8 +157,6 @@ const ApiService = {
       };
     }
   },
-  // --- Endpoint Profil Pengguna (BARU & DIPERBARUI) ---
-  // --- Endpoint Profil Pengguna ---
   async getProfile() {
     return this.makeRequest("/auth/profile", {
       method: "GET",
@@ -191,7 +180,6 @@ const ApiService = {
     });
   },
   async updateProfilePhoto(imageData) {
-    // PERBAIKAN: Pastikan payload sesuai dengan backend
     return this.makeRequest("/auth/profile-photo", {
       method: "PUT",
       body: JSON.stringify({
@@ -200,7 +188,6 @@ const ApiService = {
     });
   },
   async resetProfilePhoto() {
-    // PERBAIKAN: Gunakan method DELETE untuk reset
     return this.makeRequest("/auth/profile-photo", {
       method: "DELETE",
     });
@@ -220,7 +207,6 @@ const ApiService = {
       return false;
     }
   },
-  // --- Endpoint Jurnal (BARU) ---
   async getJournals() {
     return this.makeRequest("/journal", { method: "GET" });
   },
