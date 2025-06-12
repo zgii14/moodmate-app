@@ -21,151 +21,22 @@ Pastikan Anda telah menginstal:
 - **Python** (v3.8+ recommended)
 - **pip** (Python package manager)
 
-## 🚀 Cara Menjalankan Proyek
-
-Anda perlu membuka **3 terminal** untuk menjalankan semua komponen secara bersamaan.
-
-### Terminal 1: Backend API Server
-
-```bash
-# Masuk ke direktori server
-cd server
-
-# Install dependencies
-npm install
-
-# Jalankan server
-npm start
-```
-
-**Output yang diharapkan:**
-
-```
-🚀 MoodMate Auth API Server running on http://localhost:9000
-📋 Available Endpoints:
-    - Health Check: GET /api/health
+## 📋 Available Endpoints:
+   - Health Check: GET /api/health
    - Register: POST /api/auth/register
    - Login: POST /api/auth/login
    - Profile: GET /api/auth/profile
    - Update Profile: PUT /api/auth/profile
    - Change Password: PUT /api/auth/change-password
    - Logout: POST /api/auth/logout
+   - Upload Profile Photo: PUT /api/auth/profile-photo
+   - Delete Profile Photo: DELETE /api/auth/profile-photo
    - Predict Mood: POST /api/predict-mood
    - Create Journal: POST /api/journal
    - Get Journals: GET /api/journal
    - Get Journal by ID: GET /api/journal/{id}
    - Update Journal: PUT /api/journal/{id}
    - Delete Journal: DELETE /api/journal/{id}
-```
-
-### Terminal 2: ML API Server
-
-```bash
-# Masuk ke direktori ml-api
-cd ml-api
-
-# Buat virtual environment
-python -m venv venv
-
-# Aktifkan virtual environment
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Upgrade pip (opsional tapi disarankan)
-python -m pip install --upgrade pip
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install tf-keras (diperlukan untuk kompatibilitas)
-pip install tf-keras
-
-# Jalankan ML API server
-uvicorn app.main:app --reload 
-```
-
-**⚠️ Catatan Penting untuk ML API:**
-
-- Jika Anda mendapat error tentang Keras 3, pastikan menjalankan: `pip install tf-keras`
-- Loading model pertama kali akan memakan waktu beberapa saat
-- Port default diubah ke 8080 untuk menghindari konflik
-
-**Output yang diharapkan:**
-
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-✅ Model loaded successfully
-INFO:     Application startup complete.
-```
-
-### Terminal 3: Frontend Development Server
-
-```bash
-# Masuk ke direktori root proyek (atau direktori frontend jika terpisah)
-cd moodmate
-
-# Install dependencies
-npm install
-
-# Jalankan development server
-npm run dev
-```
-
-**Output yang diharapkan:**
-
-```
-webpack compiled successfully
-Local: http://localhost:8080
-```
-
-## 🔧 Konfigurasi
-
-### Backend Configuration
-
-File: `server/server.js`
-
-- **Port:** 9000
-
-### Frontend Configuration
-
-File: `config.js`
-
-- **Backend URL:** `http://localhost:9000/api`
-- **Default Port:** 8080
-
-### ML API Configuration
-
-- **Port:** 8000
-- **Model Path:** `app/model`
-
-## 📊 Testing API
-
-### Test Backend Health Check
-
-```bash
-curl http://localhost:9000/api/health
-```
-
-### Test ML API
-
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Hari ini saya sangat senang sekali"}'
-```
-
-### Test Registration
-
-```bash
-curl -X POST http://localhost:9000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test User",
-    "email": "test@example.com",
-    "password": "password123"
-  }'
 ```
 
 ## 📁 Struktur Proyek
@@ -178,7 +49,6 @@ moodmate/
 ├── ml-api/                # ML API
 │   ├── app/
 │   │   ├── main.py        # FastAPI application
-│   │   └── model/         # Trained model files
 │   ├── requirements.txt
 │   └── venv/              # Virtual environment
 ├── src/                   # Frontend source
@@ -187,28 +57,6 @@ moodmate/
 ├── webpack.dev.js         # Webpack dev config
 └── package.json           # Frontend dependencies
 ```
-
-## 🚪 Endpoints API
-
-### Backend API (Port 9000)
-
-- `GET /api/health` - Health check
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/profile` - Get user profile
-- `PUT //api/auth/profile` - Update user profile
-- `PUT /api/auth/change-password` - Update Password
-- `POST /api/predict-mood` - Predict mood
-- `POST /api/journal` - Create Journal
-- `GET /api/journal` - Get Journals
-- `GET /api/journal/{id}` - Get Journal by ID
-- `PUT /api/journal/{id}` - Update Journal
-- `DELETE /api/journal/{id}` - Delete Journal
-- `POST /api/auth/logout` - User logout
-
-### ML API (Port 8080)
-
-- `POST /predict` - Predict mood from text
 
 ## 💡 Tips Development
 
