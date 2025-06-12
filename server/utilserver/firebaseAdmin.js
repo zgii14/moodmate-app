@@ -1,13 +1,11 @@
 const admin = require("firebase-admin");
 const dotenv = require("dotenv");
 
-// Load environment variables
 dotenv.config();
 
 let db;
 
 try {
-  // Cek apakah variabel GOOGLE_CREDENTIALS_JSON ada (untuk produksi)
   if (process.env.GOOGLE_CREDENTIALS_JSON) {
     console.log("Initializing Firebase Admin with GOOGLE_CREDENTIALS_JSON...");
 
@@ -22,7 +20,6 @@ try {
       );
     }
   } else if (process.env.FIREBASE_PRIVATE_KEY) {
-    // Menggunakan environment variables terpisah
     console.log("Initializing Firebase Admin with separate env variables...");
 
     const serviceAccount = {
@@ -51,7 +48,6 @@ try {
     throw new Error("No Firebase credentials found in environment variables");
   }
 
-  // Setelah inisialisasi, ambil instance Firestore
   db = admin.firestore();
   console.log("✅ Firestore instance created successfully");
 } catch (error) {

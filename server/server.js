@@ -1,43 +1,36 @@
 const Hapi = require("@hapi/hapi");
 const Bcrypt = require("bcryptjs");
 const fetch = require("node-fetch");
-const { db } = require("./utilserver/firebaseAdmin.js"); // Pastikan ini sudah benar
+const { db } = require("./utilserver/firebaseAdmin.js"); 
 
 let users = [];
 let journalEntries = [];
 let idCounter = 1;
 
-// Helper
 const generateId = () => `id_${Date.now()}_${idCounter++}`;
 const getCurrentDate = () => new Date().toISOString();
 const generateSessionId = () =>
   `firestore_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-// Firestore Session Helpers
 const SESSION_COLLECTION = "sessions";
 
-// Simpan session ke Firestore
 async function saveSessionToFirestore(sessionId, sessionData) {
   await db.collection(SESSION_COLLECTION).doc(sessionId).set(sessionData);
 }
 
-// Ambil session dari Firestore
 async function getSessionFromFirestore(sessionId) {
   const docSnap = await db.collection(SESSION_COLLECTION).doc(sessionId).get();
   return docSnap.exists ? docSnap.data() : null;
 }
 
-// Hapus session dari Firestore
 async function deleteSessionFromFirestore(sessionId) {
   await db.collection(SESSION_COLLECTION).doc(sessionId).delete();
 }
 
-// Load data users & journals dari Firestore (bukan session)
 const loadData = async () => {
   try {
     const userSnapshot = await db.collection("users").get();
 
-    // PERBAIKAN: Kita mengambil data DAN ID dokumennya
     users = userSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
     const journalSnapshot = await db.collection("journals").get();
@@ -50,7 +43,6 @@ const loadData = async () => {
       `✅ Successfully loaded ${users.length} users and ${journalEntries.length} journals.`
     );
 
-    // Update idCounter supaya tetap unik
     const allIds = [
       ...users.map((u) => u.id),
       ...journalEntries.map((j) => j.id),
@@ -72,11 +64,9 @@ const loadData = async () => {
   }
 };
 
-// Simpan users ke Firestore (Fungsi ini mungkin tidak lagi diperlukan jika registrasi langsung ke DB)
 const saveUsers = async () => {
   try {
     for (const user of users) {
-      // Menggunakan email sebagai ID dokumen agar konsisten dengan frontend
       await db
         .collection("users")
         .doc(user.email)
@@ -94,7 +84,6 @@ const saveUsers = async () => {
   }
 };
 
-// Simpan journals ke Firestore
 const saveJournals = async () => {
   try {
     for (const journal of journalEntries) {
@@ -111,8 +100,7 @@ const saveJournals = async () => {
     console.error("❌ Error saving journals to Firestore:", error);
   }
 };
-// Tambahkan di atas/before: const init = async () => {
-// Session validator (ambil dari Firestore)
+
 const validateSession = async (request) => {
   const sessionId = request.headers["x-session-id"];
   if (!sessionId) return null;
@@ -125,6 +113,7 @@ const validateSession = async (request) => {
   );
   return session;
 };
+
 const init = async () => {
   await loadData();
 
@@ -133,14 +122,9 @@ const init = async () => {
     host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ["https://moodmate.up.railway.app"], // Mengizinkan semua origin untuk development
+        origin: ["https://moodmate.up.railway.app"], 
         credentials: true,
-        headers: [
-          "Accept",
-          "Content-Type",
-          "If-None-Match",
-          "x-session-id",
-        ],
+        headers: ["Accept", "Content-Type", "If-None-Match", "x-session-id"],
         exposedHeaders: ["WWW-Authenticate", "Server-Authorization"],
         additionalExposedHeaders: ["Accept"],
         maxAge: 60,
@@ -150,21 +134,28 @@ const init = async () => {
   });
 
   server.route({
-    method: 'OPTIONS',
-    path: '/{any*}', // Tangkap semua path untuk method OPTIONS
+    method: "OPTIONS",
+    path: "/{any*}", 
     handler: (request, h) => {
-      const response = h.response('OK');
-  
-      // Berikan semua izin yang diperlukan secara eksplisit
-      response.header('Access-Control-Allow-Origin', 'https://moodmate.up.railway.app');
-      response.header('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID, Authorization');
-      response.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      
+      const response = h.response("OK");
+
+      response.header(
+        "Access-Control-Allow-Origin",
+        "https://moodmate.up.railway.app"
+      );
+      response.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, X-Session-ID, Authorization"
+      );
+      response.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, OPTIONS"
+      );
+
       return response;
-    }
+    },
   });
 
-  // Health check
   server.route({
     method: "GET",
     path: "/api/health",
@@ -175,7 +166,6 @@ const init = async () => {
     }),
   });
 
-  // Register
   server.route({
     method: "POST",
     path: "/api/auth/register",
@@ -204,7 +194,6 @@ const init = async () => {
 
         await userRef.set(newUser);
 
-        // Menambahkan user baru ke array lokal agar konsisten tanpa perlu reload
         users.push({ ...newUser, id: email });
 
         return h
@@ -222,9 +211,6 @@ const init = async () => {
     },
   });
 
-  // Login
-  // Ganti handler login Anda yang lama dengan yang ini
-  // Login
   server.route({
     method: "POST",
     path: "/api/auth/login",
@@ -262,7 +248,7 @@ const init = async () => {
 
         const sessionId = generateSessionId();
         const sessionData = {
-          userId: userDoc.id, // ID Dokumen adalah email
+          userId: userDoc.id, 
           email: userData.email,
           createdAt: getCurrentDate(),
         };
@@ -296,7 +282,6 @@ const init = async () => {
     },
   });
 
-  // Logout
   server.route({
     method: "POST",
     path: "/api/auth/logout",
@@ -310,7 +295,6 @@ const init = async () => {
         .code(200);
     },
   });
-  // Profile
 
   server.route({
     method: "GET",
@@ -323,19 +307,18 @@ const init = async () => {
             .response({ success: false, message: "Session tidak valid" })
             .code(401);
         }
-  
+
         const userRef = db.collection("users").doc(session.userId);
         const userDoc = await userRef.get();
-  
+
         if (!userDoc.exists) {
           return h
             .response({ success: false, message: "Data user tidak ditemukan" })
             .code(404);
         }
-  
+
         const userData = userDoc.data();
-  
-        // Pastikan profilePhoto disertakan jika ada
+
         return {
           success: true,
           message: "Profil berhasil diambil",
@@ -346,7 +329,7 @@ const init = async () => {
               email: userData.email,
               createdAt: userData.createdAt,
               updatedAt: userData.updatedAt,
-              profilePhoto: userData.profilePhoto || null, // Tambahkan ini
+              profilePhoto: userData.profilePhoto || null, 
             },
           },
         };
@@ -362,7 +345,6 @@ const init = async () => {
     },
   });
 
-    // Tambahkan route ini setelah route GET /api/auth/profile
   server.route({
     method: "PUT",
     path: "/api/auth/profile",
@@ -376,8 +358,7 @@ const init = async () => {
         }
 
         const { name, email } = request.payload;
-        
-        // Validasi input
+
         if (!name || name.trim().length === 0) {
           return h
             .response({ success: false, message: "Nama harus diisi" })
@@ -390,7 +371,6 @@ const init = async () => {
             .code(400);
         }
 
-        // Validasi format email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
           return h
@@ -407,11 +387,10 @@ const init = async () => {
             .code(404);
         }
 
-        // Jika email diubah, cek apakah email baru sudah digunakan
         if (email !== session.email) {
           const existingUserRef = db.collection("users").doc(email);
           const existingUserDoc = await existingUserRef.get();
-          
+
           if (existingUserDoc.exists) {
             return h
               .response({ success: false, message: "Email sudah digunakan" })
@@ -425,36 +404,33 @@ const init = async () => {
           updatedAt: getCurrentDate(),
         };
 
-        // Jika email berubah, kita perlu menangani perubahan document ID
         if (email !== session.email) {
-          // Ambil data user lama termasuk password dan data lainnya
           const oldUserData = userDoc.data();
-          
-          // Buat dokumen baru dengan email sebagai ID
-          await db.collection("users").doc(email).set({
-            ...oldUserData,
-            ...updatedData,
-          });
-          
-          // Hapus dokumen lama
+
+          await db
+            .collection("users")
+            .doc(email)
+            .set({
+              ...oldUserData,
+              ...updatedData,
+            });
+
           await userRef.delete();
-          
-          // Update semua sessions yang menggunakan userId lama
-          const sessionsSnapshot = await db.collection(SESSION_COLLECTION)
+
+          const sessionsSnapshot = await db
+            .collection(SESSION_COLLECTION)
             .where("userId", "==", session.userId)
             .get();
-          
+
           const batch = db.batch();
-          sessionsSnapshot.docs.forEach(doc => {
-            batch.update(doc.ref, { 
+          sessionsSnapshot.docs.forEach((doc) => {
+            batch.update(doc.ref, {
               userId: email,
-              email: email 
+              email: email,
             });
           });
           await batch.commit();
-          
         } else {
-          // Jika email tidak berubah, update dokumen yang ada
           await userRef.update(updatedData);
         }
 
@@ -470,7 +446,6 @@ const init = async () => {
             },
           },
         });
-
       } catch (error) {
         console.error("!!! ERROR in /api/auth/profile PUT:", error);
         return h
@@ -483,7 +458,6 @@ const init = async () => {
     },
   });
 
-  // TAMBAHKAN ROUTE BARU UNTUK UPDATE FOTO PROFIL
   server.route({
     method: "PUT",
     path: "/api/auth/profile-photo",
@@ -503,7 +477,7 @@ const init = async () => {
             .code(400);
         }
 
-        const userRef = db.collection("users").doc(session.userId); // userId adalah email
+        const userRef = db.collection("users").doc(session.userId); 
 
         await userRef.update({
           profilePhoto: profilePhoto,
@@ -525,7 +499,6 @@ const init = async () => {
     },
   });
 
-  // TAMBAHKAN ROUTE BARU UNTUK RESET FOTO PROFIL
   server.route({
     method: "DELETE",
     path: "/api/auth/profile-photo",
@@ -540,7 +513,6 @@ const init = async () => {
 
         const userRef = db.collection("users").doc(session.userId);
 
-        // Hapus field foto profil dari dokumen
         const { FieldValue } = require("firebase-admin/firestore");
         await userRef.update({
           profilePhoto: FieldValue.delete(),
@@ -558,6 +530,7 @@ const init = async () => {
       }
     },
   });
+
   server.route({
     method: "PUT",
     path: "/api/auth/change-password",
@@ -696,7 +669,7 @@ const init = async () => {
             .code(400);
 
         const newJournalEntry = {
-          userId: session.userId, // Menyimpan ID user yang membuat jurnal
+          userId: session.userId, 
           catatan,
           mood,
           aktivitas: aktivitas || [],
@@ -723,7 +696,6 @@ const init = async () => {
     },
   });
 
-  // MENDAPATKAN SEMUA JURNAL PENGGUNA
   server.route({
     method: "GET",
     path: "/api/journal",
@@ -761,7 +733,6 @@ const init = async () => {
     },
   });
 
-  // MENDAPATKAN JURNAL SPESIFIK BERDASARKAN ID
   server.route({
     method: "GET",
     path: "/api/journal/{id}",
@@ -784,7 +755,6 @@ const init = async () => {
         }
 
         const journalData = docSnap.data();
-        // Pemeriksaan keamanan: pastikan user hanya bisa mengakses jurnal miliknya
         if (journalData.userId !== session.userId) {
           return h
             .response({ success: false, message: "Akses ditolak" })
@@ -803,7 +773,7 @@ const init = async () => {
       }
     },
   });
-  // MENGHAPUS JURNAL
+
   server.route({
     method: "DELETE",
     path: "/api/journal/{id}",
@@ -825,7 +795,6 @@ const init = async () => {
             .code(404);
         }
 
-        // Pemeriksaan keamanan
         if (docSnap.data().userId !== session.userId) {
           return h
             .response({ success: false, message: "Akses ditolak" })
@@ -847,7 +816,6 @@ const init = async () => {
     },
   });
 
-  // Predict Mood
   server.route({
     method: "POST",
     path: "/api/predict-mood",
@@ -888,7 +856,6 @@ const init = async () => {
     },
   });
 
-  // Graceful shutdown
   const gracefulShutdown = async () => {
     console.log("\nGraceful shutdown initiated...");
     try {

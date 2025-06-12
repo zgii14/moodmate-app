@@ -2,62 +2,81 @@ import CONFIG from "../config";
 // asynchronous function to call the backend API for mood prediction
 const ApiService = {
   async makeRequest(endpoint, options = {}) {
-  const sessionId = localStorage.getItem("moodmate-session-id");
-  const headers = {
-    "Content-Type": "application/json",
-    ...options.headers,
-  };
-  if (sessionId) {
-    headers["x-session-id"] = sessionId;
-  }
+    const sessionId = localStorage.getItem("moodmate-session-id");
+    const headers = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+    if (sessionId) {
+      headers["x-session-id"] = sessionId;
+    }
 
-  try {
-    console.log(`Making request to: ${CONFIG.BASE_URL}${endpoint}`);
-    
-    const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-      credentials: 'include', // Tambahkan ini untuk CORS
-    });
+    try {
+      console.log(`Making request to: ${CONFIG.BASE_URL}${endpoint}`);
 
-    console.log(`Response status: ${response.status}`);
+      const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+        credentials: "include", // Tambahkan ini untuk CORS
+      });
 
-    if (!response.ok) {
-      // Handle specific HTTP errors
-      if (response.status === 401) {
-        // Session expired, redirect to login
-        localStorage.removeItem("moodmate-session-id");
-        localStorage.removeItem("moodmate-current-user");
-        localStorage.removeItem("moodmate-logged-in");
-        window.location.hash = '#/login';
-        return { success: false, message: "Sesi telah berakhir, silakan login kembali." };
+      console.log(`Response status: ${response.status}`);
+
+      if (!response.ok) {
+        // Handle specific HTTP errors
+        if (response.status === 401) {
+          // Session expired, redirect to login
+          localStorage.removeItem("moodmate-session-id");
+          localStorage.removeItem("moodmate-current-user");
+          localStorage.removeItem("moodmate-logged-in");
+          window.location.hash = "#/login";
+          return {
+            success: false,
+            message: "Sesi telah berakhir, silakan login kembali.",
+          };
+        }
+
+        // Try to get error message from response
+        try {
+          const errorData = await response.json();
+          return {
+            success: false,
+            message: errorData.message || `Server error: ${response.status}`,
+          };
+        } catch {
+          return {
+            success: false,
+            message: `Server error: ${response.status}`,
+          };
+        }
       }
-      
-      // Try to get error message from response
-      try {
-        const errorData = await response.json();
-        return { success: false, message: errorData.message || `Server error: ${response.status}` };
-      } catch {
-        return { success: false, message: `Server error: ${response.status}` };
-      }
-    }
 
-    return await response.json();
-  } catch (error) {
-    console.error(`API request failed for ${endpoint}:`, error);
-    
-    // Handle different types of errors
-    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      return { success: false, message: "Tidak dapat terhubung ke server. Periksa koneksi internet Anda." };
+      return await response.json();
+    } catch (error) {
+      console.error(`API request failed for ${endpoint}:`, error);
+
+      // Handle different types of errors
+      if (
+        error.name === "TypeError" &&
+        error.message.includes("Failed to fetch")
+      ) {
+        return {
+          success: false,
+          message:
+            "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.",
+        };
+      }
+
+      if (error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timeout. Silakan coba lagi.",
+        };
+      }
+
+      return { success: false, message: `Terjadi kesalahan: ${error.message}` };
     }
-    
-    if (error.name === 'AbortError') {
-      return { success: false, message: "Request timeout. Silakan coba lagi." };
-    }
-    
-    return { success: false, message: `Terjadi kesalahan: ${error.message}` };
-  }
-},
+  },
 
   // Fungsi untuk menyimpan data sesi setelah login berhasil
   setSessionData(sessionId, user) {
@@ -150,33 +169,33 @@ const ApiService = {
   // --- Endpoint Profil Pengguna (BARU & DIPERBARUI) ---
   // --- Endpoint Profil Pengguna ---
   async getProfile() {
-    return this.makeRequest("/auth/profile", { 
-      method: "GET" 
+    return this.makeRequest("/auth/profile", {
+      method: "GET",
     });
   },
   async updateProfile(updateData) {
-  console.log('Updating profile with data:', updateData);
-  return this.makeRequest("/auth/profile", {
-    method: "PUT",
-    body: JSON.stringify(updateData),
-  });
-},
+    console.log("Updating profile with data:", updateData);
+    return this.makeRequest("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(updateData),
+    });
+  },
   async changePassword(passwordData) {
-  console.log('Changing password...');
-  return this.makeRequest("/auth/change-password", {
-    method: "PUT",
-    body: JSON.stringify({
-      currentPassword: passwordData.currentPassword,
-      newPassword: passwordData.newPassword
-    }),
-  });
-},
+    console.log("Changing password...");
+    return this.makeRequest("/auth/change-password", {
+      method: "PUT",
+      body: JSON.stringify({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      }),
+    });
+  },
   async updateProfilePhoto(imageData) {
     // PERBAIKAN: Pastikan payload sesuai dengan backend
     return this.makeRequest("/auth/profile-photo", {
       method: "PUT",
-      body: JSON.stringify({ 
-        profilePhoto: imageData 
+      body: JSON.stringify({
+        profilePhoto: imageData,
       }),
     });
   },
