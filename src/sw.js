@@ -30,4 +30,4 @@ self.addEventListener("fetch", function (event) {
   );
 });
 
-//test1
+//test2
